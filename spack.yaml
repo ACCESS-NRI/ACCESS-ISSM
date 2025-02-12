@@ -1,0 +1,79 @@
+# This is a Spack Environment file.
+#
+# It describes a set of packages to be installed, along with
+# configuration settings.
+spack:
+  # TODO: This section is used primarily to provide variations to a model based on deployment target. Delete if not required.
+  # definitions:
+    # This is the root spack bundle that contains the model
+    # - ROOT_PACKAGE:
+    #   - MODEL@git.VERSION
+
+    # Mutually-exclusive Compiler and Target definitions (assumes DEPLOYMENT_TARGET set)
+    # - when: env['DEPLOYMENT_TARGET'] == 'Gadi'
+    #   compiler_target: ['%intel@19.0.5.281 target=x86_64_v4']
+    # More mutually-exclusive definitions can be made...
+    # Default
+    # - when: "'DEPLOYMENT_TARGET' not in env"
+    #   compiler_targets: ['intel@2021.2.0 target=x86_64']
+
+    # This is where the single definitions of ROOT_PACKAGE and compiler/target are
+    # matrixed together to form a single spec: MODEL@git.VERSION %intel@2021.2.0 target=x86_64
+    # - ROOT_SPEC:
+    #   - matrix:
+    #     - [$ROOT_PACKAGE]
+    #     - [$%compiler_target]
+
+  specs:
+    # The root Spack Bundle Recipe (SBR) for the model and overall version of
+    # the deployment:
+    # TODO: Replace the MODEL and VERSION, if there is only one deployment target
+    # - MODEL@git.VERSION
+    # Alternatively, if there are multiple deployment targets that require
+    # different compilers/variants, use the above definitions section and:
+    # - $ROOT_SPEC
+  packages:
+    # Specification of dependency versions and variants. CI/CD requires that
+    # the first element of the require is only a version:
+    # TODO: Specify versions and variants of dependencies as required.
+    # openmpi:
+    #   require:
+    #     - '@4.1.5'
+
+    # Specifications that apply to all packages
+    all:
+      # TODO: Specify compiler/targets for all packages
+      # require:
+      #   - '%intel@2021.10.0'
+      #   - 'target=x86_64'
+  view: true
+  concretizer:
+    unify: true
+  modules:
+    default:
+      tcl:
+        include:
+          # TODO: Add MODEL and PACKAGEs that will have a corresponding module
+          # - MODEL
+          # - PACKAGE1
+          # - PACKAGE2
+        projections:
+          # These projection VERSIONs must be the same as the
+          # `spack.packages.*.require[0]` VERSION but without the `@git.` and
+          # without the RHS of the equals sign, if there is one.
+          #
+          # For a MODEL, an example projection is `{name}/2024.10.0`.
+          # For a PACKAGE where `require` VERSION is
+          # `@git.2024.04.21=access-esm1.5`, the projection becomes
+          # `{name}/2024.04.21-{hash:7}`.
+          # TODO: Add explicit projections for modules that will be found with
+          #       `module load`.
+          # MODEL: '{name}/VERSION'
+          # PACKAGE1: '{name}/VERSION1-{hash:7}'
+          # PACKAGE2: '{name}/VERSION2-{hash:7}'
+  # config:
+  #   overridden spack configurations, if needed
+  # mirrors:
+  #   overridden spack package tarball directories, if needed
+  # repos:
+  #   overridden repo sources, if needed

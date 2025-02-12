@@ -1,0 +1,20 @@
+name: CD
+on:
+  push:
+    branches:
+      - main
+      - backport/*.*
+    paths:
+      - config/**
+      - spack.yaml
+jobs:
+  cd:
+    name: CD
+    uses: access-nri/build-cd/.github/workflows/cd.yml@v4
+    with:
+      model: ${{ vars.NAME }}
+    permissions:
+      contents: write
+      # This is due to the entrypoint also handling `on.pull_request` events
+      pull-requests: write
+    secrets: inherit
