@@ -33,6 +33,16 @@ spack:
     # different compilers/variants, use the above definitions section and:
     # - $ROOT_SPEC
   packages:
+    python:
+      externals:
+      - spec: python@3.9.2
+        modules:
+          - python3/3.9.2
+        # This prefix should point to whatever directory your site’s Python 3.9.2
+        # is actually installed in.  If you are not sure, you can put a placeholder
+        # here.  Spack just needs *some* prefix to associate with the external.
+        prefix: /usr/local/python/3.9.2
+      buildable: false 
     # Specification of dependency versions and variants. CI/CD requires that
     # the first element of the require is only a version:
     # TODO: Specify versions and variants of dependencies as required.
