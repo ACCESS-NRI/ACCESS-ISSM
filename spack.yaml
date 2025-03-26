@@ -1,9 +1,15 @@
 spack:
   specs:
-    - issm@access-development +wrappers
+    - access-issm@git.2025.03.0
 
   packages:
+    issm:
+      require:
+        - '@access-development'
+        - +wrappers
+
     # Mark Python 3.9.2 as external so Spack reuses the system module
+    # TODO: @CodeGat Check if this definition clashes with the existing schema
     python:
       externals:
       - spec: python@3.9.2
@@ -13,7 +19,10 @@ spack:
       buildable: false
 
     # “all” can remain empty if you aren’t forcing any particular compiler / MPI
-    all: {}
+    all:
+      require:
+        - '%intel@2021.10.0'
+        - 'target=x86_64'
 
   # Create a unified view of all installed packages
   view: true
@@ -26,9 +35,9 @@ spack:
   modules:
     default:
       tcl:
-        include: []
-        projections: {}
-
-  # Point to your local package repository that contains “issm/package.py”
-  repos:
-    - /g/data/au88/jh7060/spack/0.22/spack-packages
+        include:
+          - access-issm
+          - issm
+          - access-triangle
+        projections:
+          access-issm: '{name}/2025.03.0-{hash:7}'
