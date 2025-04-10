@@ -17,7 +17,11 @@ spack:
           - python3/3.9.2
         prefix: /apps/python3/3.9.2
       buildable: false
-
+    
+    openmpi:
+      require:
+        - '@4.1.7'
+    
     # “all” can remain empty if you aren’t forcing any particular compiler / MPI
     all:
       require:
