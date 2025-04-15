@@ -25,7 +25,7 @@ spack:
     # “all” can remain empty if you aren’t forcing any particular compiler / MPI
     all:
       require:
-        - '%intel@2021.10.0'
+        - '%gcc@13'
         - 'target=x86_64'
 
   # Create a unified view of all installed packages
