@@ -1,90 +1,143 @@
-# model-deployment-template
+# ISSM Model Deployment Repository
 
-A template repository for the deployment of `spack`-based models.
+This repository contains the **model deployment** configuration for **ISSM** using [Spack](https://spack.readthedocs.io/en/latest/). Below are instructions and considerations for setting up the necessary files and configurations. Please follow these steps carefully to ensure consistency and reproducibility of the deployment environment.
 
-> [!NOTE]
-> Feel free to replace this README with information on the model once the TODOs have been ticked off.
+---
 
-## Things TODO to get your model deployed
+## 1. GitHub Actions Configuration (`.github/workflows.yaml` or `config/workflows.yaml`)
 
-### Settings
+If you use GitHub Actions workflows to validate or build your deployment, note the following:
 
-#### Repository Settings
+1. **Root SBD Name**  
+   If the name of the _root Spack Build Descriptor (SBD)_ for ISSM differs from the repository or model name (e.g., `access-esm1p5` is used for `ACCESS-ESM1.5`), you need to:
+   ```yaml
+   jobs:
+     pr-ci:
+       with:
+         # root-sbd: <ROOT_SBD_NAME>
+     pr-comment:
+       with:
+         # root-sbd: <ROOT_SBD_NAME>
+     pr-closed:
+       with:
+         # root-sbd: <ROOT_SBD_NAME>
+Uncomment the root-sbd line(s).
+Set each root-sbd to the correct name of the root SBD you want Spack to install.
+Workflow Steps
+Ensure that your workflow checks out the relevant files and directories (e.g., config/, spack.yaml) and that it uses the correct environment variables or inputs when calling spack.
+2. Versioning Configuration (config/versions.json)
 
-Branch protections should be set up on `main` and the special `backport/*.*` branches, which are used for backporting of fixes to major releases (the `YEAR.MONTH` portion of the `YEAR.MONTH.MINOR` version) of models.
+Your config/versions.json file should specify versions for both:
+```
+.spack
+Provide a semver or CalVer version, typically matching a branch in the ACCESS-NRI/spack repository. For example:
+{
+  ".spack": "1.2.3",
+  ...
+}
+```
+This will be used to clone the releases/v1.2.3 branch of ACCESS-NRI/spack, if following typical usage patterns.
+.spack-packages
+Provide a CalVer-compliant version tag that matches one of the tags in ACCESS-NRI/spack-packages. For example:
+```
+{
+  ".spack": "1.2.3",
+  ".spack-packages": "2024.01.01",
+  ...
+}
+```
+3. Main Spack Configuration (spack.yaml)
 
-#### Repository Secrets/Variables
+Below are the key sections and how to configure them for ISSM. Adjust these instructions based on whether you need single or multiple compiler/target variants.
 
-There are a few secrets and variables that must be set at the repository level.
+3.1 If There Are Multiple Deployment Targets
+If you need to build ISSM with different compilers, targets, or other variants across multiple deployments, you can use definitions in spack.yaml:
+```
+spack:
+  definitions:
+    - ROOT_PACKAGE: issm
+    - compiler_target:
+      - gcc@11.2.0
+      - nvhpc@21.9
 
-##### Repository Secrets
+  specs:
+    - $ROOT_PACKAGE  # This references spack.definitions above.
+                     # At build time, $ROOT_SPEC might be formed using 
+                     # the appropriate compiler/target combos.
+```
+  # More configuration below...
+Typically, you will construct a ROOT_SPEC from $ROOT_PACKAGE + variants + compiler, etc. Each environment matrix entry can expand to its own spec. Adjust this pattern as necessary.
 
-* `BUILD_DB_CONNECTION_STR`: A postgresql connection url to the release provenance database
-* `GH_COMMIT_CHECK_TOKEN`: GitHub Token that allows workflows to run based on workflow-authored commits (in  the case where a user uses `!bump` commands in PRs that bumps the version of the model)
+3.2 If There Is Only a Single Compiler/Target
+If you do not require multiple compilers or target variations, simplify spack.yaml:
+```
+spack:
+  specs:
+    - issm@git.2025.04.0
 
-##### Repository Variables
+```
+issm should be the root SBD name (the package name in spack-packages).
+@git.2025.04.0 follows a CalVer-like scheme to indicate a specific tag or version for this entire deployment.
+3.3 Packages and Variants
+In the spack.packages section, you can specify dependencies, versions, and variants. For example:
+```
+spack:
+  packages:
+    netcdf:
+      require:
+        - 4.8.1
+      variants:
+        - +mpi
+        - +parallel-netcdf
+    hdf5:
+      require:
+        - 1.12.1
+      variants:
+        - +mpi
+    ...
+```
+The first element of each require list must be only the version number. Any variants or additional constraints go under variants (or separate attributes).
+3.4 All-Package Configuration
+You can also set global configuration under spack.packages.all, such as:
+```
+spack:
+  packages:
+    all:
+      compiler: [gcc@11.2.0]
+      target: [x86_64]
+```
+3.5 Module Configuration
+To make certain packages available in module form (`module load <package>`), edit the spack.modules.default.tcl section. For example:
+```
+spack:
+  modules:
+    default:
+      tcl:
+        include:
+          - issm  # Packages you want to be directly loadable
+          - netcdf
+          - hdf5
 
-* `BUILD_DB_PACKAGES`: List of `spack` packages that are model components that will be uploaded to the release provenance database
-* `NAME`: which corresponds to the model name - which is usually the repository name
-* `CONFIG_VERSIONS_SCHEMA_VERSION`: Version of the [`config/versions.json` schema](https://github.com/ACCESS-NRI/schema/tree/main/au.org.access-nri/model/deployment/config/versions) used in this repository
-* `SPACK_YAML_SCHEMA_VERSION`: Version of the [ACCESS-NRI-style `spack.yaml` schema](https://github.com/ACCESS-NRI/schema/tree/main/au.org.access-nri/model/spack/environment/deployment) used in this repository
-* `RELEASE_DEPLOYMENT_TARGETS`: Space-separated list of deployment targets when doing release deployments. These are often the names of [keys under the `deployment` key of `build-cd`s `config/settings.json`](https://github.com/ACCESS-NRI/build-cd/blob/09cdf100eefc58f06900e8e9145e77b4caf5a39d/config/settings.json#L3), such as `Gadi` or `Setonix`. As noted [below](#environment-secretsvariables), it is the same as the GitHub Environment name. For example: `Gadi Setonix`
-* `PRERELEASE_DEPLOYMENT_TARGETS`: Space-separated list of deployment targets when doing prerelease deployments, similar to the above. For example: `Gadi Setonix` - note the lack of a `Prerelease` specifier!
+        projections:
+          "issm": "{name}/{version}"
+          "netcdf": "{name}/{version}"
+          "hdf5": "{name}/{version}"
+```
+For each included module, you must set the name of the module to match spack.packages.*.require[0] (the version) – but typically in the simplest form (e.g., 4.8.1 for NetCDF).
 
-#### Environment Secrets/Variables
+4. Repository Notes
 
-GitHub Environments are sets of variables and secrets that are used specifically to deploy software, and hence have more security requirements for their use.
+Ensure this repository has the correct version tags (e.g., git.2025.04.0) that match the @git.YEAR.MONTH.MINOR references in spack.yaml.
+If you rename the root SBD or require a different package name for ISSM, update:
+config/workflows.yaml (or your GitHub Actions) for root-sbd.
+spack.yaml for the specs section and any references in spack.packages.
+5. Contributing
 
-Currently, we have two Environments per deployment target - one for `Release` and one for `Prerelease`. Our current list of deployment targets and Environments can be found in this [deployment configuration file in `build-cd`](https://github.com/ACCESS-NRI/build-cd/blob/main/config/deployment-environment.json).
+Please submit issues and pull requests if you encounter problems or have improvements. For major changes, open an issue first to discuss proposed modifications.
 
-In order to deploy to a given deployment target:
+6. License
 
-* Environments with the name of the deployment target and the type must be created _in this repository_ and have the associated secrets/variables set ([see below](#environment-secrets))
-* There must be a `Prerelease` Environment associated with the `Release` Environment. For example, if we are deploying to `SUPERCOMPUTER`, we require Environments with the names `SUPERCOMPUTER Release`, `SUPERCOMPUTER Prerelease`.
+This repository is provided under the MIT License (or whichever license applies). Refer to the LICENSE file for details.
 
-When setting the environment up, remember to require sign off by a member of ACCESS-NRI when deploying as a `Release`.
-
-Regarding the secrets and variables that must be created:
-
-##### Environment Secrets
-
-* `HOST`: The deployment location SSH Host
-* `HOST_DATA`: The deployment location SSH Host for data transfer (may be the same as `HOST`)
-* `SSH_KEY`: A SSH Key that allows access to the above `HOST`/`HOST_DATA`
-* `USER`: A Username to login to the above `HOST`/`HOST_DATA`
-
-##### Environment Variables
-
-* `DEPLOYED_MODULES_DIR`: Directory that will contain the modules created during the installation of the model. This can be virtual modules created by a [`.modulerc` file](https://github.com/ACCESS-NRI/build-cd/tree/main/tools/modules) in the directory.
-* `DEPLOYMENT_TARGET`: Name of the deployment target. It is exported to the deployment target and used for variations in `spack.yaml` build processes - seen most prominently in mutually-exclusive 'when' clauses like `spack.definitions[].when = env['DEPLOYMENT_TARGET'] == 'gadi'`. Also used for logging purposes.
-* `SPACK_INSTALLS_ROOT_LOCATION`: Path to the directory that contains all versions of a deployment of `spack`. For example, if `/some/apps/spack` is the `SPACK_INSTALLS_ROOT_LOCATION`, that directory will contain directories like `0.20`, `0.21`, `0.22`, which in turn contain an install of `spack`, `spack-packages` and `spack-config`
-* `SPACK_YAML_LOCATION`: Path to a directory that will contain the `spack.yaml` from this repository during deployment
-* (Optional) `SPACK_INSTALL_PARALLEL_JOBS`: Explicit number of parallel jobs for the installation of the given model. Must be either of the form `--jobs N` or unset (for the default `--jobs 16`).
-
-### File Modifications
-
-#### In `.github/workflows`
-
-* Reminder that these workflows use `vars.NAME` (as well as inherit the above environment secrets) and hence these must be set.
-* If the name of the root SBD for the model (in [`spack-packages`](https://github.com/ACCESS-NRI/spack-packages/tree/main/packages)) is different from the model name (for example, `ACCESS-ESM1.5`s root SBD is `access-esm1p5`), you must uncomment and set the `jobs.[pr-ci|pr-comment|pr-closed].with.root-sbd` line to the appropriate SBD name.
-
-#### In `config/versions.json`
-
-* `.spack` must be given a version. For example, it will clone the associated `releases/vVERSION` branch of `ACCESS-NRI/spack` if you give it `VERSION`.
-* `.spack-packages` should also have a CalVer-compliant tag as the version. See the [associated repo](https://github.com/ACCESS-NRI/spack-packages/tags) for a list of available tags.
-
-#### In `spack.yaml`
-
-There are a few TODOs for the `spack.yaml`:
-
-* Only do this step if there are variations in compiler/etc across deployment targets:
-  * `spack.definitions`: Use the `ROOT_PACKAGE` to define the root SBD. The `ROOT_SPEC` simply combines the `ROOT_PACKAGE` with the other, mutually-exclusive `compiler_target` definition.
-  * `spack.specs`: Set the only element in the spec list to `$ROOT_SPEC` - it will be filled in at install time.
-
-Otherwise:
-
-* `spack.specs`: Set the root SBD as the only element of `spack.specs`. This must also have an `@git.YEAR.MONTH.MINOR` version as it is the version of the entire deployment (and indeed will be a tag in this repository).
-* `spack.packages.*`: In this section, you can specify the versions and variants of dependencies. Note that the first element of the `spack.packages.*.require` must be only a version. Variants and other configuration can be done on subsequent lines.
-* `spack.packages.all`: Can set configuration for all packages. For example, the compiler used, or the target architecture.
-* `spack.modules.default.tcl.include`: List of package names that will be explicitly included and available to `module load`.
-* `spack.modules.default.tcl.projections`: For included modules, you must set the name of the module to be the same as the `spack.packages.*.require[0]` version, without the `@git.`.
+Happy deploying ISSM with Spack!
+Feel free to reach out if you have any questions or suggestions.
