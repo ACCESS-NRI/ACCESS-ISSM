@@ -44,7 +44,7 @@ The deployment process also creates a GitHub release with the same tag. All rele
 - A `spack.lock` file, which is a complete build provenance document listing all the components that were built and their dependencies, versions, compiler version, build flags, and build architecture. It is also installable via Spack, similarly to the `spack.yaml`.
 - The environment `spack.yaml` file used for deployment
 
-Additionally the deployment creates environment modulefiles, the [standard method for deploying software on `gadi`](https://opus.nci.org.au/display/Help/Environment+Modules). To view available ACCESS-rAM3 versions:
+Additionally the deployment creates environment modulefiles, the [standard method for deploying software on `gadi`](https://opus.nci.org.au/display/Help/Environment+Modules). To view available ACCESS-ISSM versions:
 
 ```bash
 module use /g/data/vk83/modules
