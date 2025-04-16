@@ -3,8 +3,6 @@
 ## About the model
 The **ACCESS Ice Sheet System Model (ACCESS-ISSM)** is an implementation of NASA’s [Ice Sheet System Model (ISSM)](https://issm.jpl.nasa.gov/). It is designed for high-resolution, high-performance simulations of ice sheet dynamics, including glacier and ice shelf flow. By leveraging ISSM’s powerful capabilities, ACCESS-ISSM facilitates advanced research into ice sheet behavior, contributing to improved understanding of glaciological processes and their impact on the broader climate system.
 
-For more information see the [ACCESS-Hive Docs model description](#) and how to run the model.
-
 ## About this repository
 This is the **Model Deployment Repository** for the **ACCESS-ISSM** model.
 
