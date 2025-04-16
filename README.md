@@ -21,7 +21,7 @@ ACCESS-NRI is using [spack](https://spack.io), a build from source package manag
 
 Spack automatically builds all the components and their dependencies, producing model component executables. Spack already contains support for compiling thousands of common software packages. Spack packages for the components are defined in the [spack packages repository](https://github.com/ACCESS-NRI/spack_packages/).
 
-ACCESS-ISSM is built and deployed automatically to **gadi** on **NCI** (see below). However, it is possible to use Spack to compile the model using the `spack.yaml` environment file in this repository. To do so, follow the instructions for [configuring Spack on gadi](#).
+ACCESS-ISSM is built and deployed automatically to `gadi` on NCI (see below). However it is possible to use spack to compile the model using the `spack.yaml` environment file in this repository. To do so follow the [instructions on for configuring spack on `gadi`]([https://forum.access-hive.org.au/t/how-to-build-access-om2-on-gadi/1545](https://access-hive.org.au/getting_started/spack/)).
 
 Then clone this repository and run the following commands on **gadi**:
 
