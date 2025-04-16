@@ -9,7 +9,7 @@ For more information see the [ACCESS-Hive Docs model description](#) and how to 
 This is the **Model Deployment Repository** for the **ACCESS-ISSM** model.
 
 ## Releases
-Release information is available on the [ACCESS Hive Forum release topic](#).
+There are not yet any officially supported public releases of ACCESS-ISSM.
 
 ## Support
 ACCESS-NRI supports ACCESS-ISSM for the Australian Research Community.
