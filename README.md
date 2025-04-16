@@ -55,4 +55,3 @@ module avail access-issm
 
 For users of ACCESS-ISSM model configurations released by ACCESS-NRI, the exact location of the model executables is not required. Model configurations will be updated with new model components when necessary.
 
-For information on contributing your own fixes to the `spack.yaml`, see the `CONTRIBUTING.md` file.
