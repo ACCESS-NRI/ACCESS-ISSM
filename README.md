@@ -14,7 +14,7 @@ There are not yet any officially supported public releases of ACCESS-ISSM.
 ## Support
 [ACCESS-NRI](https://www.access-nri.org.au) supports ACCESS-ISSM for the Australian Research Community.
 
-Any questions about ACCESS-NRI releases of ACCESS-rAM3 should be done through the [ACCESS-Hive Forum](https://forum.access-hive.org.au/). See the [ACCESS Help and Support topic](https://forum.access-hive.org.au/t/access-help-and-support/908) for details on how to do this.
+Any questions about ACCESS-NRI releases of ACCESS-ISSM should be done through the [ACCESS-Hive Forum](https://forum.access-hive.org.au/). See the [ACCESS Help and Support topic](https://forum.access-hive.org.au/t/access-help-and-support/908) for details on how to do this.
 
 ## Build
 ACCESS-NRI is using [spack](https://spack.io), a build from source package manager designed for use with high performance computing. This repository contains a [spack environment](https://spack.readthedocs.io/en/latest/environments.html) manifest file ([`spack.yaml`](./spack.yaml)) that defines all the essential components of the model, including exact versions.
