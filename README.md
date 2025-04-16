@@ -19,7 +19,7 @@ Any questions about ACCESS-NRI releases of ACCESS-rAM3 should be done through th
 ## Build
 ACCESS-NRI is using [spack](https://spack.io), a build from source package manager designed for use with high performance computing. This repository contains a [spack environment](https://spack.readthedocs.io/en/latest/environments.html) manifest file ([`spack.yaml`](./spack.yaml)) that defines all the essential components of the model, including exact versions.
 
-Spack automatically builds all the components and their dependencies, producing model component executables. It already contains support for compiling thousands of common software packages. Spack packages for the components are defined in the [spack packages repository](#).
+Spack automatically builds all the components and their dependencies, producing model component executables. Spack already contains support for compiling thousands of common software packages. Spack packages for the components are defined in the [spack packages repository](https://github.com/ACCESS-NRI/spack_packages/).
 
 ACCESS-ISSM is built and deployed automatically to **gadi** on **NCI** (see below). However, it is possible to use Spack to compile the model using the `spack.yaml` environment file in this repository. To do so, follow the instructions for [configuring Spack on gadi](#).
 
