@@ -40,7 +40,7 @@ spack find --paths
 ## Deployment
 ACCESS-ISSM is deployed automatically when a new version of the `spack.yaml` file is committed to the `main` branch or a dedicated `backport/VERSION` branch. All the ACCESS-ISSM components are built using Spack on **gadi** and installed under the `vk83` project in `/g/data/vk83`. It is necessary to be a member of the `vk83` project to use ACCESS-NRI deployments of ACCESS-ISSM.
 
-The deployment process also creates a GitHub release with the same tag. All releases are available under this repository’s **Releases** page. Each release has a changelog and metadata with detailed information about the build and deployment, including:
+The deployment process also creates a GitHub release with the same tag. All releases are available under the [Releases page](https://github.com/ACCESS-NRI/ACCESS-ISSM/releases). Each release has a changelog and meta-data with detailed information about the build and deployment, including:
 
 - Paths on **gadi** to all executables built in the deployment process (`spack.location`)
 - A `spack.lock` file, which is a complete build provenance document listing all the components that were built and their dependencies, versions, compiler version, build flags, and build architecture. It is also installable via Spack, similarly to the `spack.yaml`.
