@@ -1,90 +1,59 @@
-# model-deployment-template
+# ACCESS-ISSM
 
-A template repository for the deployment of `spack`-based models.
+## About the model
+The **ACCESS Ice Sheet System Model (ACCESS-ISSM)** is an implementation of NASA’s [Ice Sheet System Model (ISSM)](https://issm.jpl.nasa.gov/). It is designed for high-resolution, high-performance simulations of ice sheet dynamics, including glacier and ice shelf flow. By leveraging ISSM’s powerful capabilities, ACCESS-ISSM facilitates advanced research into ice sheet behavior, contributing to improved understanding of glaciological processes and their impact on the broader climate system.
 
-> [!NOTE]
-> Feel free to replace this README with information on the model once the TODOs have been ticked off.
+For more information see the [ACCESS-Hive Docs model description](#) and how to run the model.
 
-## Things TODO to get your model deployed
+## About this repository
+This is the **Model Deployment Repository** for the **ACCESS-ISSM** model.
 
-### Settings
+## Releases
+Release information is available on the [ACCESS Hive Forum release topic](#).
 
-#### Repository Settings
+## Support
+ACCESS-NRI supports ACCESS-ISSM for the Australian Research Community.
 
-Branch protections should be set up on `main` and the special `backport/*.*` branches, which are used for backporting of fixes to major releases (the `YEAR.MONTH` portion of the `YEAR.MONTH.MINOR` version) of models.
+Any questions about ACCESS-NRI releases of ACCESS-ISSM should be posted on the [ACCESS-Hive Forum](#). See the [ACCESS Help and Support topic](#) for details on how to do this.
 
-#### Repository Secrets/Variables
+## Build
+ACCESS-NRI uses **Spack**, a build-from-source package manager designed for use with high-performance computing. This repository contains a `spack.yaml` environment file that defines all the essential components of the model, including exact versions.
 
-There are a few secrets and variables that must be set at the repository level.
+Spack automatically builds all the components and their dependencies, producing model component executables. It already contains support for compiling thousands of common software packages. Spack packages for the components are defined in the [spack packages repository](#).
 
-##### Repository Secrets
+ACCESS-ISSM is built and deployed automatically to **gadi** on **NCI** (see below). However, it is possible to use Spack to compile the model using the `spack.yaml` environment file in this repository. To do so, follow the instructions for [configuring Spack on gadi](#).
 
-* `BUILD_DB_CONNECTION_STR`: A postgresql connection url to the release provenance database
-* `GH_COMMIT_CHECK_TOKEN`: GitHub Token that allows workflows to run based on workflow-authored commits (in  the case where a user uses `!bump` commands in PRs that bumps the version of the model)
+Then clone this repository and run the following commands on **gadi**:
 
-##### Repository Variables
+```bash
+spack env create access-issm spack.yaml
+spack env activate access-issm
+spack install
+```
 
-* `BUILD_DB_PACKAGES`: List of `spack` packages that are model components that will be uploaded to the release provenance database
-* `NAME`: which corresponds to the model name - which is usually the repository name
-* `CONFIG_VERSIONS_SCHEMA_VERSION`: Version of the [`config/versions.json` schema](https://github.com/ACCESS-NRI/schema/tree/main/au.org.access-nri/model/deployment/config/versions) used in this repository
-* `SPACK_YAML_SCHEMA_VERSION`: Version of the [ACCESS-NRI-style `spack.yaml` schema](https://github.com/ACCESS-NRI/schema/tree/main/au.org.access-nri/model/spack/environment/deployment) used in this repository
-* `RELEASE_DEPLOYMENT_TARGETS`: Space-separated list of deployment targets when doing release deployments. These are often the names of [keys under the `deployment` key of `build-cd`s `config/settings.json`](https://github.com/ACCESS-NRI/build-cd/blob/09cdf100eefc58f06900e8e9145e77b4caf5a39d/config/settings.json#L3), such as `Gadi` or `Setonix`. As noted [below](#environment-secretsvariables), it is the same as the GitHub Environment name. For example: `Gadi Setonix`
-* `PRERELEASE_DEPLOYMENT_TARGETS`: Space-separated list of deployment targets when doing prerelease deployments, similar to the above. For example: `Gadi Setonix` - note the lack of a `Prerelease` specifier!
+This creates a Spack environment called `access-issm` and builds all the components. Their locations can be found by running:
 
-#### Environment Secrets/Variables
+```bash
+spack find --paths
+```
 
-GitHub Environments are sets of variables and secrets that are used specifically to deploy software, and hence have more security requirements for their use.
+## Deployment
+ACCESS-ISSM is deployed automatically when a new version of the `spack.yaml` file is committed to the `main` branch or a dedicated `backport/VERSION` branch. All the ACCESS-ISSM components are built using Spack on **gadi** and installed under the `vk83` project in `/g/data/vk83`. It is necessary to be a member of the `vk83` project to use ACCESS-NRI deployments of ACCESS-ISSM.
 
-Currently, we have two Environments per deployment target - one for `Release` and one for `Prerelease`. Our current list of deployment targets and Environments can be found in this [deployment configuration file in `build-cd`](https://github.com/ACCESS-NRI/build-cd/blob/main/config/deployment-environment.json).
+The deployment process also creates a GitHub release with the same tag. All releases are available under this repository’s **Releases** page. Each release has a changelog and metadata with detailed information about the build and deployment, including:
 
-In order to deploy to a given deployment target:
+- Paths on **gadi** to all executables built in the deployment process (`spack.location`)
+- A `spack.lock` file, which is a complete build provenance document listing all the components that were built and their dependencies, versions, compiler version, build flags, and build architecture. It is also installable via Spack, similarly to the `spack.yaml`.
+- The environment `spack.yaml` file used for deployment
 
-* Environments with the name of the deployment target and the type must be created _in this repository_ and have the associated secrets/variables set ([see below](#environment-secrets))
-* There must be a `Prerelease` Environment associated with the `Release` Environment. For example, if we are deploying to `SUPERCOMPUTER`, we require Environments with the names `SUPERCOMPUTER Release`, `SUPERCOMPUTER Prerelease`.
+Additionally, the deployment creates environment modulefiles, the standard method for deploying software on **gadi**. To view available ACCESS-ISSM versions:
 
-When setting the environment up, remember to require sign off by a member of ACCESS-NRI when deploying as a `Release`.
+```bash
+module use /g/data/vk83/modules
+module avail access-issm
+```
 
-Regarding the secrets and variables that must be created:
+For users of ACCESS-ISSM model configurations released by ACCESS-NRI, the exact location of the model executables is not required. Model configurations will be updated with new model components when necessary.
 
-##### Environment Secrets
-
-* `HOST`: The deployment location SSH Host
-* `HOST_DATA`: The deployment location SSH Host for data transfer (may be the same as `HOST`)
-* `SSH_KEY`: A SSH Key that allows access to the above `HOST`/`HOST_DATA`
-* `USER`: A Username to login to the above `HOST`/`HOST_DATA`
-
-##### Environment Variables
-
-* `DEPLOYED_MODULES_DIR`: Directory that will contain the modules created during the installation of the model. This can be virtual modules created by a [`.modulerc` file](https://github.com/ACCESS-NRI/build-cd/tree/main/tools/modules) in the directory.
-* `DEPLOYMENT_TARGET`: Name of the deployment target. It is exported to the deployment target and used for variations in `spack.yaml` build processes - seen most prominently in mutually-exclusive 'when' clauses like `spack.definitions[].when = env['DEPLOYMENT_TARGET'] == 'gadi'`. Also used for logging purposes.
-* `SPACK_INSTALLS_ROOT_LOCATION`: Path to the directory that contains all versions of a deployment of `spack`. For example, if `/some/apps/spack` is the `SPACK_INSTALLS_ROOT_LOCATION`, that directory will contain directories like `0.20`, `0.21`, `0.22`, which in turn contain an install of `spack`, `spack-packages` and `spack-config`
-* `SPACK_YAML_LOCATION`: Path to a directory that will contain the `spack.yaml` from this repository during deployment
-* (Optional) `SPACK_INSTALL_PARALLEL_JOBS`: Explicit number of parallel jobs for the installation of the given model. Must be either of the form `--jobs N` or unset (for the default `--jobs 16`).
-
-### File Modifications
-
-#### In `.github/workflows`
-
-* Reminder that these workflows use `vars.NAME` (as well as inherit the above environment secrets) and hence these must be set.
-* If the name of the root SBD for the model (in [`spack-packages`](https://github.com/ACCESS-NRI/spack-packages/tree/main/packages)) is different from the model name (for example, `ACCESS-ESM1.5`s root SBD is `access-esm1p5`), you must uncomment and set the `jobs.[pr-ci|pr-comment|pr-closed].with.root-sbd` line to the appropriate SBD name.
-
-#### In `config/versions.json`
-
-* `.spack` must be given a version. For example, it will clone the associated `releases/vVERSION` branch of `ACCESS-NRI/spack` if you give it `VERSION`.
-* `.spack-packages` should also have a CalVer-compliant tag as the version. See the [associated repo](https://github.com/ACCESS-NRI/spack-packages/tags) for a list of available tags.
-
-#### In `spack.yaml`
-
-There are a few TODOs for the `spack.yaml`:
-
-* Only do this step if there are variations in compiler/etc across deployment targets:
-  * `spack.definitions`: Use the `ROOT_PACKAGE` to define the root SBD. The `ROOT_SPEC` simply combines the `ROOT_PACKAGE` with the other, mutually-exclusive `compiler_target` definition.
-  * `spack.specs`: Set the only element in the spec list to `$ROOT_SPEC` - it will be filled in at install time.
-
-Otherwise:
-
-* `spack.specs`: Set the root SBD as the only element of `spack.specs`. This must also have an `@git.YEAR.MONTH.MINOR` version as it is the version of the entire deployment (and indeed will be a tag in this repository).
-* `spack.packages.*`: In this section, you can specify the versions and variants of dependencies. Note that the first element of the `spack.packages.*.require` must be only a version. Variants and other configuration can be done on subsequent lines.
-* `spack.packages.all`: Can set configuration for all packages. For example, the compiler used, or the target architecture.
-* `spack.modules.default.tcl.include`: List of package names that will be explicitly included and available to `module load`.
-* `spack.modules.default.tcl.projections`: For included modules, you must set the name of the module to be the same as the `spack.packages.*.require[0]` version, without the `@git.`.
+For information on contributing your own fixes to the `spack.yaml`, see the `CONTRIBUTING.md` file.
+```
