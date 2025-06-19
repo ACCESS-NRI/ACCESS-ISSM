@@ -44,4 +44,4 @@ spack:
           - issm
           - access-triangle
         projections:
-          access-issm: '{name}/2025.03.0-{hash:7}'
+          access-issm: '{name}/2025.06.0-{hash:7}'
