@@ -1,6 +1,6 @@
 spack:
   specs:
-    - access-issm@git.2025.03.0
+    - access-issm@git.2025.06.0
 
   packages:
     issm:
