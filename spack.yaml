@@ -5,7 +5,7 @@ spack:
   packages:
     issm:
       require:
-        - '@git.2025.04.11'
+        - '@git.2025.06.19'
         - +wrappers
         - +ad
 
