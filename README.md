@@ -53,3 +53,5 @@ module avail access-issm
 
 For users of ACCESS-ISSM model configurations released by ACCESS-NRI, the exact location of the model executables is not required. Model configurations will be updated with new model components when necessary.
 
+For information on contributing your own fixes to the ACCESS-ISSM `spack.yaml`, see the [Hive Docs article](https://docs.access-hive.org.au/models/run-a-model/create-a-prerelease/) on creating a prerelease.
+
