@@ -1,12 +1,13 @@
 spack:
   specs:
-    - access-issm@git.2025.03.0
+    - access-issm@git.2025.06.0
 
   packages:
     issm:
       require:
-        - '@git.2025.04.11'
+        - '@git.2025.06.19'
         - +wrappers
+        - +ad
 
     # Mark Python 3.9.2 as external so Spack reuses the system module
     python:
@@ -43,4 +44,4 @@ spack:
           - issm
           - access-triangle
         projections:
-          access-issm: '{name}/2025.03.0-{hash:7}'
+          access-issm: '{name}/2025.06.0-{hash:7}'
