@@ -7,15 +7,6 @@ if not issm_dir:
     print("Error: ISSM_DIR environment variable is not set.")
     sys.exit(1)
 
-
-sys.path.insert(0, os.path.join(issm_dir, 'src', 'm', 'boundaryconditions'))
-sys.path.insert(0, os.path.join(issm_dir, 'src', 'm', 'classes'))
-sys.path.insert(1, os.path.join(issm_dir, 'src', 'm', 'classes', 'clusters'))
-sys.path.append(os.path.join(issm_dir, 'src', 'm', 'contrib', 'jkjhew'))
-
-sys.path.append(issm_dir + '/bin')
-sys.path.append(issm_dir + '/lib')
-
 import numpy as np
 from triangle import triangle
 from model import *
@@ -43,8 +34,8 @@ from bcgslbjacobioptions import bcgslbjacobioptions
 from SetMOLHOBC import SetMOLHOBC
 
 # 1) Define the steps and model number
-steps = [11]
-modelnum = 1
+#steps = [11]
+#modelnum = 1
 
 # 2) Choose model name from model number
 if modelnum == 1:
@@ -110,7 +101,7 @@ org = organizer(
      'trunkprefix',  '34;47;2'
 )
 # ------------------------------------------------------------------------------
-#  STEP: Mesh_generation
+#  STEP1: Mesh_generation
 # ------------------------------------------------------------------------------
 if org.perform('Mesh_generation'):
     model = model()  # Start a blank model
@@ -134,7 +125,7 @@ if org.perform('Mesh_generation'):
     org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: Parameterization
+#  STEP2: Parameterization
 # ------------------------------------------------------------------------------
 if org.perform('Parameterization'):
     md = org.loadmodel('Mesh_generation')
@@ -143,7 +134,7 @@ if org.perform('Parameterization'):
     org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: Transient_Steadystate
+#  STEP3: Transient_Steadystate
 # ------------------------------------------------------------------------------
 if org.perform('Transient_Steadystate'):
     md = org.loadmodel('Parameterization')
@@ -175,7 +166,7 @@ if org.perform('Transient_Steadystate'):
     org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: Transient_Steadystate_remesh (example of specialized re-meshing)
+#  STEP4: Transient_Steadystate_remesh (example of specialized re-meshing)
 # ------------------------------------------------------------------------------
 if org.perform('Transient_Steadystate_remesh'):
     md = org.loadmodel('Parameterization')
@@ -217,7 +208,7 @@ if org.perform('Transient_Steadystate_remesh'):
  
 
 # ------------------------------------------------------------------------------
-#  STEP: Transient_steadystate2
+#  STEP5: Transient_steadystate2
 # ------------------------------------------------------------------------------
 if org.perform('Transient_steadystate2'):
     md = org.loadmodel('Transient_Steadystate')
@@ -249,7 +240,7 @@ if org.perform('Transient_steadystate2'):
     #export_netCDF(md, "./mismip_1km_viscous_Transient_steadystate_2.nc")
 
 # ------------------------------------------------------------------------------
-#  STEP: Transient_steadystate3
+#  STEP6: Transient_steadystate3
 # ------------------------------------------------------------------------------
 if org.perform('Transient_steadystate3'):
     md = org.loadmodel('Transient_steadystate2')
@@ -279,7 +270,7 @@ if org.perform('Transient_steadystate3'):
     org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: Transient_steadystate4
+#  STEP7: Transient_steadystate4
 # ------------------------------------------------------------------------------
 if org.perform('Transient_steadystate4'):
     md = org.loadmodel('Transient_steadystate3')
@@ -308,7 +299,7 @@ if org.perform('Transient_steadystate4'):
     org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: Transient_steadystate5
+#  STEP8: Transient_steadystate5
 # ------------------------------------------------------------------------------
 if org.perform('Transient_steadystate5'):
     md = org.loadmodel('Transient_steadystate4')
@@ -336,7 +327,7 @@ if org.perform('Transient_steadystate5'):
     org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: Transient_extrude
+#  STEP9: Transient_extrude
 # ------------------------------------------------------------------------------
 if org.perform('Transient_extrude'):
     md = org.loadmodel('Transient_steadystate3')
@@ -358,7 +349,7 @@ if org.perform('Transient_extrude'):
     org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: GlenSSA
+#  STEP10: GlenSSA
 # ------------------------------------------------------------------------------
 if org.perform('GlenSSA'):
     if modelnum == 5 or modelnum == 6:
@@ -390,7 +381,7 @@ if org.perform('GlenSSA'):
     org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: GlenMOLHO
+#  STEP11: GlenMOLHO
 # ------------------------------------------------------------------------------
 if org.perform('GlenMOLHO'):
     if modelnum == 5 or modelnum == 6:
@@ -430,7 +421,7 @@ if org.perform('GlenMOLHO'):
     org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: GlenHO
+#  STEP12: GlenHO
 # ------------------------------------------------------------------------------
 if org.perform('GlenHO'):
     if modelnum == 5 or modelnum == 6:
@@ -462,7 +453,7 @@ if org.perform('GlenHO'):
     org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: GlenFS
+#  STEP13: GlenFS
 # ------------------------------------------------------------------------------
 if org.perform('GlenFS'):
     # If using a 2D mesh (e.g. 500m case), use the steady state model
@@ -524,7 +515,7 @@ if org.perform('GlenFS'):
     #org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: GlenESSA (enhanced SSA with a factor E=5)
+#  STEP14: GlenESSA (enhanced SSA with a factor E=5)
 # ------------------------------------------------------------------------------
 if org.perform('GlenESSA'):
     if modelnum == 5 or modelnum == 6:
@@ -558,7 +549,7 @@ if org.perform('GlenESSA'):
     org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: GlenEMOLHO (enhanced MOLHO)
+#  STEP15: GlenEMOLHO (enhanced MOLHO)
 # ------------------------------------------------------------------------------
 if org.perform('GlenEMOLHO'):
     if modelnum == 5 or modelnum == 6:
@@ -595,7 +586,7 @@ if org.perform('GlenEMOLHO'):
     md = solve(md, solutiontype)
     org.savemodel(md)
 # ------------------------------------------------------------------------------
-#  STEP: GlenEHO (enhanced HO)
+#  STEP16: GlenEHO (enhanced HO)
 # ------------------------------------------------------------------------------
 if org.perform('GlenEHO'):
     if modelnum == 5 or modelnum == 6:
@@ -629,7 +620,7 @@ if org.perform('GlenEHO'):
     org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: GlenEFS (enhanced FS)
+#  STEP17: GlenEFS (enhanced FS)
 # ------------------------------------------------------------------------------
 if org.perform('GlenEFS'):
     if modelnum == 5 or modelnum == 6:
@@ -730,7 +721,7 @@ if org.perform("ESTARMOLHO"):
     md = solve(md, solutiontype)
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
+# STEP18------------------------------------------------------------------------------
 if org.perform("ESTARHO"):
     if modelnum == 5 or modelnum == 6:
         md = org.loadmodel('Transient_Steadystate')
@@ -762,7 +753,7 @@ if org.perform("ESTARHO"):
     org.savemodel(md)
 
 # ------------------------------------------------------------------------------
-#  STEP: (Example) Analysis / Plotting
+#  STEP19: (Example) Analysis / Plotting
 # ------------------------------------------------------------------------------
 if org.perform('analyse'):
     mdgs = org.loadmodel('GlenSSA')

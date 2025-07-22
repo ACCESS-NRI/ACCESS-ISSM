@@ -40,7 +40,7 @@ module load access-issm            #    (or pick a specific version)
 # export ISSM_DIR=$ISSM_DIR
 
 # ── 3.  Define the “early” organiser steps we wish to execute  ---------------
-early_steps='[1,2,3,8,9,10,11,18,20,31]'
+early_steps='[3,5,6,9,10,11,12,13,14,15,16,17,18,19]'
 
 # ── 4.  Patch the Python driver on‑the‑fly & run it  -------------------------
 driver=./mismip_driver.py
