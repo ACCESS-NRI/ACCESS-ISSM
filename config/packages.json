@@ -4,6 +4,7 @@
     "issm"
   ],
   "injection": [
-    "openmpi"
+    "openmpi",
+    "access-triangle"
   ]
 }
