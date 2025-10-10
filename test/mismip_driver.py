@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import os, sys
 
-# Ensure ISSM paths are correctly set
-issm_dir = os.getenv('ISSM_DIR')
-if not issm_dir:
-    print("Error: ISSM_DIR environment variable is not set.")
-    sys.exit(1)
+# # Ensure ISSM paths are correctly set
+# issm_dir = os.getenv('ISSM_DIR')
+# if not issm_dir:
+#     print("Error: ISSM_DIR environment variable is not set.")
+#     sys.exit(1)
 
 import numpy as np
 from triangle import triangle
