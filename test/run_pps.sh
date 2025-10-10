@@ -27,7 +27,7 @@ module load access-issm            #    (or pick a specific version)
 # to leave out unless you want to override it.
 # export ISSM_DIR=$ISSM_DIR
 
-export ISSM_DIR=$(spack location -i issm)
+# export ISSM_DIR=$(spack location -i issm)
 
 # 2. (Optional) tie into a persistent‑session if you started one
 # source ~/.persistent-sessions/bashrc &>/dev/null || true
