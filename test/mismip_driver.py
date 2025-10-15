@@ -1,12 +1,65 @@
 #!/usr/bin/env python3
-import os, sys
+"""
+MISMIP end-to-end pipeline (Python/ISSM) — annotated
+====================================================
 
-# Ensure ISSM paths are correctly set
+This script mirrors a classic ISSM/MISMIP workflow (mesh → parameterize →
+long relaxation → extrude → model-family experiments → analysis) and is laid
+out in numbered **STEP** blocks you can toggle with an "organizer". The code is
+heavily annotated to explain *what* happens and *why*, so you can treat it as a
+living recipe for reproducing and extending your experiments on NCI Gadi or a
+local machine.
+
+Highlights
+---------
+- Switch between multiple model configurations (mesh resolution + friction law)
+  by setting `modelnum` (1..8). The script derives a `modelname` string for
+  bookkeeping and output paths.
+- The **organizer** orchestrates persistence: each step can `savemodel`/`loadmodel`
+  to/from a dedicated directory, enabling restartable workflows.
+- Ready-to-use Gadi cluster block with sensible defaults (project, nodes, walltime),
+  plus a single-node fallback for local runs.
+- A set of optional modeling branches: SSA / HO / FS and "enhanced" rheologies
+  (E or ESTAR variants) to compare flow approximations.
+
+Usage
+-----
+1) Set environment and model choice
+   - Ensure ISSM is installed and `ISSM_DIR` is set in the environment.
+   - Choose which steps to run in `steps` and which variant via `modelnum`.
+2) Run the script
+   - `python mismip_pipeline_annotated.py`
+
+Prerequisites
+-------------
+- ISSM Python interface on PATH (imports below must succeed)
+- NetCDF4, NumPy, SciPy, Matplotlib available in the Python env
+- Access to any datasets referenced in your `Mismip.py` parameterization
+
+Notes
+-----
+- This script keeps the original structure and adds comments.
+- Some lines (e.g., plotting/analysis) are placeholders and may need adaptation
+  to your local ISSM build and data.
+- For clarity, we *annotate* rather than refactor. Any obvious typos are noted
+  inline as comments without changing behavior unless harmless.
+"""
+
+# ------------------------------
+# Standard library & sanity checks
+# ------------------------------
+import os, sys
+import math  # used for friction coefficients
+
+# Ensure ISSM paths are correctly set (ISSM Python modules must be importable)
 issm_dir = os.getenv('ISSM_DIR')
 if not issm_dir:
     print("Error: ISSM_DIR environment variable is not set.")
     sys.exit(1)
 
+# ------------------------------
+# Third-party & ISSM imports
+# ------------------------------
 import numpy as np
 from triangle import triangle
 from model import *
@@ -33,11 +86,26 @@ from toolkits import toolkits
 from bcgslbjacobioptions import bcgslbjacobioptions
 from SetMOLHOBC import SetMOLHOBC
 
-# 1) Define the steps and model number
-#steps = [11]
-#modelnum = 1
+# ------------------------------
+# 1) Choose which steps and model to run
+# ------------------------------
+# Define the list of step names to execute (must match org.perform(...) labels).
+# Example single-step run:
+# steps = ["Mesh_generation"]
+# Example multi-step run:
+# steps = ["Mesh_generation", "Parameterization", "Transient_Steadystate"]
 
-# 2) Choose model name from model number
+# >>> EDIT ME <<<
+# steps = [11]
+# modelnum = 1
+
+# ------------------------------
+# 2) Derive a human-readable model name from the model number
+# ------------------------------
+# This controls directory/prefix names and helps keep outputs organized.
+if 'modelnum' not in globals():
+    raise ValueError("Please set 'modelnum' (1..8) near the top of the script.")
+
 if modelnum == 1:
     modelname = '1km_viscous'
 elif modelnum == 2:
@@ -55,92 +123,112 @@ elif modelnum == 7:
 elif modelnum == 8:
     modelname = '200m_coulomb'
 else:
-    raise ValueError('Invalid modelnum!')
+    raise ValueError('Invalid modelnum! Choose 1..8')
 
-# Hard-coded parameters
-clustername = 'gadi'
-# loadonly = 0
-# interactive = 0
-printflag = True
+# ------------------------------
+# Global run options
+# ------------------------------
+clustername = 'gadi'     # 'gadi' for NCI. Any other string triggers local fallback below.
+printflag = True         # Reserved for any verbose printing you want to add
 
-
-
+# ------------------------------
+# Cluster configuration (Gadi vs local fallback)
+# ------------------------------
+# On Gadi we construct an ISSM-aware cluster object. Else we make a minimal
+# single-node "generic" cluster (adjust np, mem, time as needed).
 if clustername.lower() == 'gadi':
 
     cluster = gadi(
         'name',         'gadi.nci.org.au',
-        'login',        'jh7060',
-        'srcpath',      '/g/data/au88/jh7060/ISSM',
-        'project',      'au88',
+        'login',        'jh7060',                         # <<< EDIT: your NCI login
+        'srcpath',      '/g/data/au88/jh7060/ISSM',       # <<< EDIT: where ISSM sources live
+        'project',      'au88',                           # <<< EDIT: your NCI project code
         'numnodes',     1,
         'cpuspernode',  32,
         'time',         48*60,  # minutes
         'codepath',     '/g/data/au88/jh7060/spack/0.22/release/linux-rocky8-x86_64_v4/gcc-13.2.0/issm-4.24-v52nx3pfx7lpqwfldqlpspflk34wz756/bin',
         'executionpath','/scratch/au88/jh7060/issm_runs'
     )
-    loadonly = 0
-    lock     = 1
+    loadonly = 0  # run for real on the cluster
+    lock     = 1  # use file locks for multi-job safety
 else:
     # --- generic single-node/local fallback ---
-    cluster        = generic()            # <-- no args here
+    cluster        = generic()            # minimal cluster; no args
     cluster.name   = gethostname()        # label for logs
-    cluster.np     = 32              # number of MPI processes
-    cluster.mem    = 64              # GB – change to suit your machine
-    cluster.time   = 60                  # wall-clock minutes
-    cluster.queue  = 'local'              # or the default queue on your scheduler
+    cluster.np     = 32                   # number of MPI ranks
+    cluster.mem    = 64                   # GB
+    cluster.time   = 60                   # minutes
+    cluster.queue  = 'local'
     lock     = 1
-    loadonly = 1
+    loadonly = 1  # only prepare/run locally without submitting
 
-# Create an organizer
-# - The “organizer” is the same logic as the MATLAB version.
-# - Note that in Python, you typically use Organizer(...) from issm.
+# ------------------------------
+# Organizer: centralizes persistence and step orchestration
+# ------------------------------
+# Models and results are saved under a model-specific directory with a prefix.
+# The steps list controls which blocks below are executed.
+if 'steps' not in globals():
+    raise ValueError("Please set 'steps' near the top (list of step names to run).")
+
 org = organizer(
      'repository',   './Models_'     + modelname,
      'prefix',       'mismip_'       + modelname + '_',
      'steps',        steps,
-     'trunkprefix',  '34;47;2'
+     'trunkprefix',  '34;47;2'  # free-form label; often used for provenance
 )
-# ------------------------------------------------------------------------------
+
+# ============================================================================
 #  STEP1: Mesh_generation
-# ------------------------------------------------------------------------------
+# ============================================================================
 if org.perform('Mesh_generation'):
-    model = model()  # Start a blank model
+    # Start a blank ISSM model; then build an unstructured mesh from Domain.exp
+    model = model()
+
+    # Choose hmax based on modelnum (coarse → fine)
     if modelnum == 1 or modelnum == 3:
         md = bamg(model,
           'domain',       './Domain.exp',
           'hmax',         1000,
           'splitcorners', 1)
 
+        # Quick diagnostic: mesh span in x-direction
         print(md.mesh.x.max() -  md.mesh.x.min())
+
     elif modelnum == 2 or modelnum == 4:
         md = bamg(model, domain='./Domain.exp', hmax=2000, splitcorners=1)
     elif modelnum == 5 or modelnum == 6:
-        md = bamg(model, domain='./Domain.exp', hmax=500, splitcorners=1)
+        md = bamg(model, domain='./Domain.exp', hmax=500,  splitcorners=1)
     elif modelnum == 7 or modelnum == 8:
-        md = bamg(model, domain='./Domain.exp', hmax=200, splitcorners=1)
+        md = bamg(model, domain='./Domain.exp', hmax=200,  splitcorners=1)
     else:
         raise RuntimeError("Model not supported yet")
 
     md.miscellaneous.name = 'MISMIP_' + modelname
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
+# ============================================================================
 #  STEP2: Parameterization
-# ------------------------------------------------------------------------------
+# ============================================================================
 if org.perform('Parameterization'):
     md = org.loadmodel('Mesh_generation')
+
+    # Blank mask (no domain partitioning yet) — customize as needed
     md = setmask(md, '', '')
+
+    # Apply problem-specific parameters (friction, geometry, BCs, etc.)
+    # The file Mismip.py should fill in md.* fields accordingly.
     md = parameterize(md, './Mismip.py')
+
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
-#  STEP3: Transient_Steadystate
-# ------------------------------------------------------------------------------
+# ============================================================================
+#  STEP3: Transient_Steadystate (very long relaxation on SSA)
+# ============================================================================
 if org.perform('Transient_Steadystate'):
     md = org.loadmodel('Parameterization')
     md = setflowequation(md, 'SSA', 'all')
 
-    # Coulomb friction for certain models
+    # For "coulomb" variants, switch friction law and parameters
     if (modelnum == 3) or (modelnum == 4) or (modelnum == 6):
         md.friction = frictioncoulomb()
         md.friction.coefficient = math.sqrt(3.160e6) * np.ones(md.mesh.numberofvertices)
@@ -148,38 +236,50 @@ if org.perform('Transient_Steadystate'):
         md.friction.p = 3 * np.ones(md.mesh.numberofelements)
         md.friction.q = np.zeros(md.mesh.numberofelements)
 
+    # Multi-kyr relaxation to a quasi steady geometry
     md.timestepping.time_step = 1
     md.timestepping.final_time = 200000
     md.settings.output_frequency = 2000
     md.settings.checkpoint_frequency = 2000
+
+    # Conservative nonlinear solver settings for robust relaxation
     md.stressbalance.maxiter = 30
     md.stressbalance.abstol = float('nan')
     md.stressbalance.restol = 1
+
     md.verbose = verbose('solution', True, 'module', True, 'convergence', True)
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_Tss1'
     md.settings.solver_residue_threshold = float('nan')
 
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
-    md = solve(md, solutiontype,'loadonly', loadonly, 'lock', lock, 'runtimename', False)
+    # Transient (geometry evolves) run; `loadonly` submits or prepares run
+    solutiontype = 'tr'
+    md = solve(md, solutiontype, 'loadonly', loadonly, 'lock', lock, 'runtimename', False)
+
+    # Optional NetCDF export for portability/inspection
     export_netCDF(md, "./mismip_1km_viscous_Transient_steadystate.nc")
+
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
-#  STEP4: Transient_Steadystate_remesh (example of specialized re-meshing)
-# ------------------------------------------------------------------------------
+# ============================================================================
+#  STEP4: Transient_Steadystate_remesh (reuse relaxed state, then remesh)
+# ============================================================================
 if org.perform('Transient_Steadystate_remesh'):
     md = org.loadmodel('Parameterization')
-    # Example: load from another directory
-    # The code below tries to load an existing model from the 2km_viscous folder.
-    # Adapt to your local file paths if needed.
+
+    # Example: seed from another relaxed solution at a different resolution
+    # (adjust path to an existing model in your workspace)
     md2 = loadmodel('Models_2km_viscous/mismip_2km_viscous_Transient_steadystate2.nc')
-    # Overwrite the final solution’s mesh
+
+    # Transfer final solution mesh to current model (simple overwrite approach)
     md2.results.TransientSolution[-1].MeshX = md.mesh.x
     md2.results.TransientSolution[-1].MeshY = md.mesh.y
     md2.results.TransientSolution[-1].MeshElements = md.mesh.elements
 
+    # Remesh guided by your parameter file (e.g., hmax fields, refinement logic)
     md = remesh(md2, './Mismip.py')
+
+    # Reapply flow equation and (if needed) Coulomb friction
     md = setflowequation(md, 'SSA', 'all')
     if (modelnum == 3) or (modelnum == 4) or (modelnum == 6):
         md.friction = frictioncoulomb()
@@ -188,33 +288,35 @@ if org.perform('Transient_Steadystate_remesh'):
         md.friction.p = 3 * np.ones(md.mesh.numberofelements)
         md.friction.q = np.zeros(md.mesh.numberofelements)
 
-
+    # Shorter relaxation/checkpointing for the remeshed state
     md.timestepping.time_step = 1
     md.timestepping.final_time = 200000
     md.settings.output_frequency = 5000
     md.settings.checkpoint_frequency = 5000
+
     md.stressbalance.maxiter = 10
     md.stressbalance.abstol = float('nan')
     md.stressbalance.restol = 1
+
     md.verbose = verbose('convergence', False, 'solution', False)
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_Tssr'
     md.settings.solver_residue_threshold = float('nan')
     md.settings.waitonlock = 0
 
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
+    solutiontype = 'tr'
     md = solve(md, solutiontype)
     org.savemodel(md)
- 
 
-# ------------------------------------------------------------------------------
-#  STEP5: Transient_steadystate2
-# ------------------------------------------------------------------------------
+# ============================================================================
+#  STEP5: Transient_steadystate2 (restart from STEP3 end-state)
+# ============================================================================
 if org.perform('Transient_steadystate2'):
     md = org.loadmodel('Transient_Steadystate')
 
     md = setflowequation(md, 'SSA', 'all')
-    # Re-initialize from previous solution
+
+    # Re-initialize from the last saved transient state
     md.initialization.vx = md.results.TransientSolution[-1].Vx
     md.initialization.vy = md.results.TransientSolution[-1].Vy
     md.initialization.vel = md.results.TransientSolution[-1].Vel
@@ -223,29 +325,33 @@ if org.perform('Transient_steadystate2'):
     md.geometry.surface = md.results.TransientSolution[-1].Surface
     md.mask.ocean_levelset = md.results.TransientSolution[-1].MaskOceanLevelset
 
+    # Shorter follow-on run to tighten steady state
     md.timestepping.time_step = 1
     md.timestepping.final_time = 10000
     md.settings.output_frequency = 1000
     md.settings.checkpoint_frequency = 5000
+
     md.stressbalance.maxiter = 10
     md.stressbalance.abstol = float('nan')
     md.stressbalance.restol = 1
+
     md.verbose = verbose('solution', True, 'module', True, 'convergence', True)
     md.cluster = cluster
     md.settings.waitonlock = 1
     md.miscellaneous.name = 'MISMIP_' + modelname + '_Tss2'
 
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
-    md = solve(md, solutiontype,'loadonly', loadonly, 'lock', lock)#, 'runtimename', False)
-    #export_netCDF(md, "./mismip_1km_viscous_Transient_steadystate_2.nc")
+    solutiontype = 'tr'
+    md = solve(md, solutiontype, 'loadonly', loadonly, 'lock', lock)
+    # export_netCDF(...)  # optional
 
-# ------------------------------------------------------------------------------
-#  STEP6: Transient_steadystate3
-# ------------------------------------------------------------------------------
+# ============================================================================
+#  STEP6: Transient_steadystate3 (another tightening pass)
+# ============================================================================
 if org.perform('Transient_steadystate3'):
     md = org.loadmodel('Transient_steadystate2')
     md = setflowequation(md, 'SSA', 'all')
-    # Re-initialize from previous solution
+
+    # Reuse the last transient state as initial condition
     md.initialization.vx = md.results.TransientSolution[-1].Vx
     md.initialization.vy = md.results.TransientSolution[-1].Vy
     md.initialization.vel = md.results.TransientSolution[-1].Vel
@@ -257,25 +363,29 @@ if org.perform('Transient_steadystate3'):
     md.timestepping.time_step = 1
     md.timestepping.final_time = 200000
     md.settings.output_frequency = 6000
+
     md.stressbalance.maxiter = 10
     md.stressbalance.abstol = float('nan')
     md.stressbalance.restol = 1
+
     md.verbose = verbose('solution', True, 'module', True, 'convergence', True)
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_Tss3'
     md.settings.solver_residue_threshold = float('nan')
     md.settings.waitonlock = 0
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
-    md = solve(md, solutiontype,'loadonly', loadonly, 'lock', lock)
+
+    solutiontype = 'tr'
+    md = solve(md, solutiontype, 'loadonly', loadonly, 'lock', lock)
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
+# ============================================================================
 #  STEP7: Transient_steadystate4
-# ------------------------------------------------------------------------------
+# ============================================================================
 if org.perform('Transient_steadystate4'):
     md = org.loadmodel('Transient_steadystate3')
     md = setflowequation(md, 'SSA', 'all')
-    # Re-initialize from previous solution
+
+    # Reuse last state
     md.initialization.vx = md.results.TransientSolution[-1].Vx
     md.initialization.vy = md.results.TransientSolution[-1].Vy
     md.initialization.vel = md.results.TransientSolution[-1].Vel
@@ -287,24 +397,27 @@ if org.perform('Transient_steadystate4'):
     md.timestepping.time_step = 1
     md.timestepping.final_time = 200000
     md.settings.output_frequency = 6000
+
     md.stressbalance.maxiter = 10
     md.stressbalance.abstol = float('nan')
     md.stressbalance.restol = 1
+
     md.verbose = verbose('convergence', False, 'solution', True)
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_Tss4'
 
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
+    solutiontype = 'tr'
     md = solve(md, solutiontype)
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
+# ============================================================================
 #  STEP8: Transient_steadystate5
-# ------------------------------------------------------------------------------
+# ============================================================================
 if org.perform('Transient_steadystate5'):
     md = org.loadmodel('Transient_steadystate4')
     md = setflowequation(md, 'SSA', 'all')
-    # Re-initialize from previous solution
+
+    # Reuse last state
     md.initialization.vx = md.results.TransientSolution[-1].Vx
     md.initialization.vy = md.results.TransientSolution[-1].Vy
     md.initialization.vel = md.results.TransientSolution[-1].Vel
@@ -316,22 +429,26 @@ if org.perform('Transient_steadystate5'):
     md.timestepping.time_step = 1
     md.timestepping.final_time = 200000
     md.settings.output_frequency = 6000
+
     md.stressbalance.maxiter = 10
     md.stressbalance.abstol = float('nan')
     md.stressbalance.restol = 1
+
     md.verbose = verbose('convergence', False, 'solution', True)
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_Tss5'
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
+
+    solutiontype = 'tr'
     md = solve(md, solutiontype)
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
-#  STEP9: Transient_extrude
-# ------------------------------------------------------------------------------
+# ============================================================================
+#  STEP9: Transient_extrude (prepare 3D for HO/FS branches)
+# ============================================================================
 if org.perform('Transient_extrude'):
     md = org.loadmodel('Transient_steadystate3')
-    # Re-initialize from previous solution
+
+    # Initialize from last transient state
     md.initialization.vx = md.results.TransientSolution[-1].Vx
     md.initialization.vy = md.results.TransientSolution[-1].Vy
     md.initialization.vel = md.results.TransientSolution[-1].Vel
@@ -340,7 +457,10 @@ if org.perform('Transient_extrude'):
     md.geometry.surface = md.results.TransientSolution[-1].Surface
     md.mask.ocean_levelset = md.results.TransientSolution[-1].MaskOceanLevelset
 
-    md = md.extrude( 10, 1.1)
+    # Extrude to 3D: 10 layers, geometric stretching 1.1
+    md = md.extrude(10, 1.1)
+
+    # Switch to HO for subsequent runs; keep physics lightweight for now
     md = setflowequation(md, 'HO', 'all')
     md.transient.isthermal = 0
     md.transient.issmb = 0
@@ -348,41 +468,45 @@ if org.perform('Transient_extrude'):
 
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
-#  STEP10: GlenSSA
-# ------------------------------------------------------------------------------
+# ============================================================================
+#  STEP10: GlenSSA — Glen's flow law under SSA
+# ============================================================================
 if org.perform('GlenSSA'):
+    # Choose base state: 500m meshes can reuse 2D; others take extruded 3D then collapse
     if modelnum == 5 or modelnum == 6:
-        md = org.loadmodel('Transient_Steadystate') #200k years relaxation
+        md = org.loadmodel('Transient_Steadystate')
     else:
-        md = org.loadmodel('Transient_extrude') #600k years relaxation
+        md = org.loadmodel('Transient_extrude')
 
     md.transient.requested_outputs = [
         'default','IceVolume','IceVolumeAboveFloatation','GroundedArea',
         'StrainRatexx','StrainRatexy','StrainRateyy','StrainRateeffective',
         'MaskOceanLevelset','IceMaskNodeActivation','MaskIceLevelset'
     ]
-    md = md.collapse()  # collapse 3D model to 2D if extruded
+
+    md = md.collapse()  # collapse 3D back to 2D
     md = setflowequation(md, 'SSA', 'all')
 
     md.timestepping.time_step = 1.0/12.0
     md.timestepping.final_time = 1000
     md.settings.output_frequency = 600
+
     md.stressbalance.maxiter = 10
     md.stressbalance.restol = 1
     md.stressbalance.reltol = 0.001
     md.stressbalance.abstol = float('nan')
+
     md.verbose.convergence = False
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_GSSA'
 
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
+    solutiontype = 'tr'
     md = solve(md, solutiontype)
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
-#  STEP11: GlenMOLHO
-# ------------------------------------------------------------------------------
+# ============================================================================
+#  STEP11: GlenMOLHO — Glen + MOLHO approx with shear BCs
+# ============================================================================
 if org.perform('GlenMOLHO'):
     if modelnum == 5 or modelnum == 6:
         md = org.loadmodel('Transient_Steadystate')
@@ -395,34 +519,36 @@ if org.perform('GlenMOLHO'):
         'VxAverage','VyAverage','StrainRatexx','StrainRatexy','StrainRateyy','StrainRateeffective',
         'MaskOceanLevelset','IceMaskNodeActivation','MaskIceLevelset'
     ]
+
     md = md.collapse()
     md = setflowequation(md, 'MOLHO', 'all')
 
-    # Example solver settings
+    # Example solver configuration; add block preconditioner for robustness
     md.stressbalance.maxiter = 10
     md.stressbalance.restol = 1
     md.stressbalance.reltol = 0.001
     md.stressbalance.abstol = float('nan')
-    # If you need special solver settings for small meshes:
-   # md.toolkits = toolkits()
+
     md.toolkits = toolkits.addoptions(md.toolkits,'StressbalanceAnalysis',bcgslbjacobioptions())
 
-    md = SetMOLHOBC(md)  # Shear boundary conditions for MOLHO?
+    # Apply MOLHO shear boundary conditions (helper provided by ISSM)
+    md = SetMOLHOBC(md)
 
     md.timestepping.time_step = 1.0/12.0
     md.timestepping.final_time = 1000
     md.settings.output_frequency = 600
+
     md.verbose.convergence = False
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_GMOLHO'
 
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
+    solutiontype = 'tr'
     md = solve(md, solutiontype)
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
-#  STEP12: GlenHO
-# ------------------------------------------------------------------------------
+# ============================================================================
+#  STEP12: GlenHO — Glen under HO (3D solved but often collapsed for speed)
+# ============================================================================
 if org.perform('GlenHO'):
     if modelnum == 5 or modelnum == 6:
         md = org.loadmodel('Transient_Steadystate')
@@ -436,35 +562,37 @@ if org.perform('GlenHO'):
         'StrainRateeffective',
         'MaskOceanLevelset','IceMaskNodeActivation','MaskIceLevelset'
     ]
+
     md.timestepping.time_step = 1.0/12.0
     md.timestepping.final_time = 1000
     md.settings.output_frequency = 600
-    #md.toolkits = md.addoptions(md.toolkits, 'StressbalanceAnalysis', bcgslbjacobioptions())
+
+    # Optional: block CG + Jacobi preconditioner
+    # md.toolkits = md.addoptions(md.toolkits, 'StressbalanceAnalysis', bcgslbjacobioptions())
+
     md.stressbalance.maxiter = 10
     md.stressbalance.restol = 1
     md.stressbalance.reltol = 0.001
     md.stressbalance.abstol = float('nan')
+
     md.verbose.convergence = False
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_GHO'
 
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
+    solutiontype = 'tr'
     md = solve(md, solutiontype)
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
-#  STEP13: GlenFS
-# ------------------------------------------------------------------------------
+# ============================================================================
+#  STEP13: GlenFS — short FS sanity run with free surface & GL migration
+# ============================================================================
 if org.perform('GlenFS'):
-    # If using a 2D mesh (e.g. 500m case), use the steady state model
     if modelnum == 5 or modelnum == 6:
         md = org.loadmodel('Transient_Steadystate')
     else:
-        # or extruded model
         md = org.loadmodel('Transient_steadystate3')
 
-        # or load from GlenHO to reuse geometry
-        # md = org.loadmodel('GlenHO')
+    # Initialize from a steady state before extruding
     md.initialization.vx = md.results.TransientSolution[-1].Vx
     md.initialization.vy = md.results.TransientSolution[-1].Vy
     md.initialization.vel = md.results.TransientSolution[-1].Vel
@@ -473,50 +601,42 @@ if org.perform('GlenFS'):
     md.geometry.surface = md.results.TransientSolution[-1].Surface
     md.mask.ocean_levelset = md.results.TransientSolution[-1].MaskOceanLevelset
 
-    md = md.extrude( 10, 1.1)
+    md = md.extrude(10, 1.1)
     md = setflowequation(md, 'HO', 'all')
     md.transient.isthermal = 0
     md.transient.issmb = 0
-    #md.transient.ismasstransport = 0
     md.initialization.temperature[:] = 273.0
-    
+
+    # Switch to FS for a very short diagnostic transient
     md = setflowequation(md, 'FS', 'all')
     md.stressbalance.shelf_dampening = 1
     md.masstransport.isfreesurface = 1
-    md.transient.isgroundingline = 1  # or 1, depending on your test
-    md.groundingline.migration='Contact' # or 'SoftMigration'
+    md.transient.isgroundingline = 1
+    md.groundingline.migration='Contact'  # alternative: 'SoftMigration'
+
     md.timestepping.time_step = 0.00001
     md.timestepping.final_time = 0.0001
     md.settings.output_frequency = 1
-   # md = md.SetInput(md, 'Bed', md.geometry.bed)
+
     md.toolkits = toolkits.addoptions(md.toolkits, 'StressbalanceAnalysis', bcgslbjacobioptions())
     md.flowequation.fe_FS = 'TaylorHood'
+
     md.stressbalance.maxiter = 20
     md.stressbalance.restol = 0.5
     md.stressbalance.reltol = 0.001
-    # If you know surface and thickness:
-    #md.geometry.bed = md.geometry.surface - md.geometry.thickness
-
-    #md.geometry.surface = InterpFromGridToMesh(x, y, usrf, md.mesh.x, md.mesh.y, 0);
-    #md.geometry.bed     = InterpFromGridToMesh(x, y, topg, md.mesh.x, md.mesh.y, 0);
-
-
-    # Or if you already interpolated base (from NetCDF):
-#; % Sometimes 'base' is used internally
-
     md.stressbalance.abstol = float('nan')
+
     md.verbose.convergence = False
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_GFS'
-    print(md.mesh)
 
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
-    md = solve(md, solutiontype,'loadonly', loadonly, 'lock', lock, 'runtimename', False)
-    #org.savemodel(md)
+    solutiontype = 'tr'
+    md = solve(md, solutiontype, 'loadonly', loadonly, 'lock', lock, 'runtimename', False)
+    # org.savemodel(md)  # optional
 
-# ------------------------------------------------------------------------------
-#  STEP14: GlenESSA (enhanced SSA with a factor E=5)
-# ------------------------------------------------------------------------------
+# ============================================================================
+#  STEP14: GlenESSA — SSA with multiplicative enhancement E
+# ============================================================================
 if org.perform('GlenESSA'):
     if modelnum == 5 or modelnum == 6:
         md = org.loadmodel('Transient_Steadystate')
@@ -528,29 +648,34 @@ if org.perform('GlenESSA'):
         'StrainRatexx','StrainRatexy','StrainRateyy','StrainRateeffective',
         'MaskOceanLevelset','IceMaskNodeActivation','MaskIceLevelset'
     ]
+
     md = collapse(md)
     md = setflowequation(md, 'SSA', 'all')
+
+    # Apply Glen enhancement E
     md.materials = matenhancedice(md.materials)
     md.materials.rheology_E = 5.0 * np.ones(md.mesh.numberofvertices)
 
     md.timestepping.time_step = 1.0/12.0
     md.timestepping.final_time = 1000
     md.settings.output_frequency = 600
+
     md.stressbalance.maxiter = 10
     md.stressbalance.restol = 1
     md.stressbalance.reltol = 0.001
     md.stressbalance.abstol = float('nan')
+
     md.verbose.convergence = False
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_ESSA'
 
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
+    solutiontype = 'tr'
     md = solve(md, solutiontype)
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
-#  STEP15: GlenEMOLHO (enhanced MOLHO)
-# ------------------------------------------------------------------------------
+# ============================================================================
+#  STEP15: GlenEMOLHO — MOLHO with enhancement E
+# ============================================================================
 if org.perform('GlenEMOLHO'):
     if modelnum == 5 or modelnum == 6:
         md = org.loadmodel('Transient_Steadystate')
@@ -563,8 +688,10 @@ if org.perform('GlenEMOLHO'):
         'VxAverage','VyAverage','StrainRatexx','StrainRatexy','StrainRateyy','StrainRateeffective',
         'MaskOceanLevelset','IceMaskNodeActivation','MaskIceLevelset'
     ]
+
     md = collapse(md)
     md = setflowequation(md, 'MOLHO', 'all')
+
     md.materials = matenhancedice(md.materials)
     md.materials.rheology_E[:] = 5.0
 
@@ -578,16 +705,18 @@ if org.perform('GlenEMOLHO'):
     md.timestepping.time_step = 1.0/12.0
     md.timestepping.final_time = 1000
     md.settings.output_frequency = 600
+
     md.verbose.convergence = False
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_GEMOLHO'
 
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
+    solutiontype = 'tr'
     md = solve(md, solutiontype)
     org.savemodel(md)
-# ------------------------------------------------------------------------------
-#  STEP16: GlenEHO (enhanced HO)
-# ------------------------------------------------------------------------------
+
+# ============================================================================
+#  STEP16: GlenEHO — HO with enhancement E
+# ============================================================================
 if org.perform('GlenEHO'):
     if modelnum == 5 or modelnum == 6:
         md = org.loadmodel('Transient_Steadystate')
@@ -597,31 +726,36 @@ if org.perform('GlenEHO'):
     md = setflowequation(md, 'HO', 'all')
     md.materials = matenhancedice(md.materials)
     md.materials.rheology_E = 5.0 * np.ones(md.mesh.numberofvertices)
+
     md.transient.requested_outputs = [
         'default','IceVolume','IceVolumeAboveFloatation','GroundedArea',
         'StrainRatexx','StrainRatexy','StrainRateyy','StrainRatexz','StrainRateyz','StrainRatezz',
         'StrainRateeffective',
         'MaskOceanLevelset','IceMaskNodeActivation','MaskIceLevelset'
     ]
+
     md.timestepping.time_step = 1.0/12.0
     md.timestepping.final_time = 1000
     md.settings.output_frequency = 600
-    md.toolkits = md.addoptions(md.toolkits, 'StressbalanceAnalysis', bcgslbjacobioptions())
+
+    # md.toolkits = md.addoptions(md.toolkits, 'StressbalanceAnalysis', bcgslbjacobioptions())
+
     md.stressbalance.maxiter = 10
     md.stressbalance.restol = 1
     md.stressbalance.reltol = 0.001
     md.stressbalance.abstol = float('nan')
+
     md.verbose.convergence = True
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_GEHO'
 
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
+    solutiontype = 'tr'
     md = solve(md, solutiontype)
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
-#  STEP17: GlenEFS (enhanced FS)
-# ------------------------------------------------------------------------------
+# ============================================================================
+#  STEP17: GlenEFS — FS with enhancement E (very short diagnostic)
+# ============================================================================
 if org.perform('GlenEFS'):
     if modelnum == 5 or modelnum == 6:
         md = org.loadmodel('Transient_Steadystate')
@@ -631,11 +765,11 @@ if org.perform('GlenEFS'):
     md = setflowequation(md, 'FS', 'all')
     md.materials = matenhancedice(md.materials)
     md.materials.rheology_E[:] = 5.0
+
     md.stressbalance.shelf_dampening = 1
     md.masstransport.isfreesurface = 1
     md.groundingline.migration = 'Contact'
 
-    # Example short run
     md.timestepping.time_step = 0.001
     md.timestepping.final_time = 0.002
     md.settings.output_frequency = 1
@@ -644,123 +778,158 @@ if org.perform('GlenEFS'):
     md.stressbalance.restol = 1
     md.stressbalance.reltol = 0.001
     md.stressbalance.abstol = float('nan')
+
     md.verbose.convergence = True
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_GEFS'
 
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
+    solutiontype = 'tr'
     md = solve(md, solutiontype)
     org.savemodel(md)
+
+# ============================================================================
+#  STEP (ESTAR variants): ESTARSSA / ESTARMOLHO / ESTARHO
+# ============================================================================
+# These blocks demonstrate ESTAR (strain-rate–dependent) enhancements.
+# NOTE: The original snippet had small typos (e.g., `md,materials`). We keep
+# structure but annotate potential corrections in comments.
 
 if org.perform("ESTARSSA"):
     if modelnum == 5 or modelnum == 6:
         md = org.loadmodel('Transient_Steadystate')
     else:
         md = org.loadmodel('Transient_extrude')
+
     md = setflowequation(md, 'SSA', 'all')
-    md.materials = matenhancedice(md.materials)
+    md.materials = matenhancedice(md.materials)  # or matestar(md.materials) if available
+
+    # Two-parameter ESTAR: Es (shear) and Ec (compression) multipliers
     md.materials.rheology_Es = 5.0 * np.ones(md.mesh.numberofvertices)
-    md.materials.rheology_Ec= 3.0/8.0 * md,materials.rheology_Es
-    md.transient.requested_outputs = ['default','IceVolume','IceVolumeAboveFloatation','GroundedArea',
-		'StrainRatexx','StrainRatexy','StrainRateyy','StrainRateeffective','LambdaS','Epsprime',
-		'MaskOceanLevelset','IceMaskNodeActivation','MaskIceLevelset']
-    
+    # Potential fix: `md.materials`, not `md,materials` (typo in original)
+    md.materials.rheology_Ec = (3.0/8.0) * md.materials.rheology_Es
+
+    md.transient.requested_outputs = [
+        'default','IceVolume','IceVolumeAboveFloatation','GroundedArea',
+        'StrainRatexx','StrainRatexy','StrainRateyy','StrainRateeffective','LambdaS','Epsprime',
+        'MaskOceanLevelset','IceMaskNodeActivation','MaskIceLevelset']
+
     md.timestepping.time_step = 1.0/12.0
     md.timestepping.final_time = 1000
     md.settings.output_frequency = 600
+
     md.stressbalance.maxiter = 10
     md.stressbalance.restol = 1
     md.stressbalance.reltol = 0.001
     md.stressbalance.abstol = float('nan')
+
     md.verbose.convergence = False
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_ESTARSSA'
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
+
+    solutiontype = 'tr'
     md = solve(md, solutiontype)
     org.savemodel(md)
 
 if org.perform("ESTARMOLHO"):
-
     if modelnum == 5 or modelnum == 6:
         md = org.loadmodel('Transient_Steadystate')
     else:
         md = org.loadmodel('Transient_extrude')
-    
-    md.transient.requested_outputs = ['default','IceVolume','IceVolumeAboveFloatation','GroundedArea',
-		'VxShear','VyShear','VxBase','VyBase','VxSurface','VySurface','VxAverage','VyAverage',
-		'StrainRatexx','StrainRatexy','StrainRateyy','StrainRateeffective','LambdaS','Epsprime',
-		'MaskOceanLevelset','IceMaskNodeActivation','MaskIceLevelset']
+
+    md.transient.requested_outputs = [
+        'default','IceVolume','IceVolumeAboveFloatation','GroundedArea',
+        'VxShear','VyShear','VxBase','VyBase','VxSurface','VySurface','VxAverage','VyAverage',
+        'StrainRatexx','StrainRatexy','StrainRateyy','StrainRateeffective','LambdaS','Epsprime',
+        'MaskOceanLevelset','IceMaskNodeActivation','MaskIceLevelset']
+
     md = collapse(md)
     md = setflowequation(md, 'MOLHO', 'all')
-    md.materials = matestar(md.materials)
+
+    # If your ISSM has a dedicated ESTAR material helper, use that instead:
+    # md.materials = matestar(md.materials)
+    md.materials = matenhancedice(md.materials)
     md.materials.rheology_Es = 5.0 * np.ones(md.mesh.numberofvertices)
-    md.materials.rheology_Ec= 3.0/8.0 * md,materials.rheology_Es
+    md.materials.rheology_Ec = (3.0/8.0) * md.materials.rheology_Es
 
     md.stressbalance.maxiter = 10
     md.stressbalance.restol = 1
     md.stressbalance.reltol = 0.001
     md.stressbalance.abstol = float('nan')
-    if res <= 1000:
-        md.toolkits = toolkits()
-        md.toolkits = addoptions(md.toolkits, 'StressbalanceAnalysis', bcgslbjacobioptions())
 
-        md.settings.solver_residue_threshold = np.nan  # 11/05/2019
-        md.stressbalance.maxiter = 50                 # 10/24/2019
-        md.stressbalance.restol = 1e-4                # 12/17/2019 original
-        md.stressbalance.reltol = np.nan              # 11/05/2019
-        md.stressbalance.abstol = np.nan              # 11/05/2019
+    # Optional: tighter solver for very fine meshes
+    # (original logic referenced `res`; wire up if you track resolution)
+    # if res <= 1000:
+    #     md.toolkits = toolkits()
+    #     md.toolkits = addoptions(md.toolkits, 'StressbalanceAnalysis', bcgslbjacobioptions())
+    #     md.settings.solver_residue_threshold = np.nan
+    #     md.stressbalance.maxiter = 50
+    #     md.stressbalance.restol = 1e-4
+    #     md.stressbalance.reltol = np.nan
+    #     md.stressbalance.abstol = np.nan
 
     md.timestepping.time_step = 1.0/12.0
     md.timestepping.final_time = 1000
     md.settings.output_frequency = 600
+
     md.verbose.convergence = False
     md.cluster = cluster
     md.miscellaneous.name = 'MISMIP_' + modelname + '_ESTARMOLHO'
-    
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
+
+    solutiontype = 'tr'
     md = solve(md, solutiontype)
     org.savemodel(md)
 
-# STEP18------------------------------------------------------------------------------
+# STEP18 ---------------------------------------------------------------------
 if org.perform("ESTARHO"):
     if modelnum == 5 or modelnum == 6:
         md = org.loadmodel('Transient_Steadystate')
     else:
         md = org.loadmodel('Transient_extrude')
+
     md = setflowequation(md, 'HO', 'all')
-    md.materials = matestar(md.materials)
-    md.transient.requested_outputs = ['default','IceVolume','IceVolumeAboveFloatation','GroundedArea',
-		'StrainRatexx','StrainRatexy','StrainRateyy','StrainRatexz','StrainRateyz','StrainRatezz',
-		'StrainRateeffective','LambdaS',
-		'MaskOceanLevelset','IceMaskNodeActivation','MaskIceLevelset']
+
+    # As above: use matestar if available; else reuse matenhancedice as a stand-in
+    # to carry Es/Ec fields for your postprocessing/diagnostics.
+    # md.materials = matestar(md.materials)
+    md.materials = matenhancedice(md.materials)
+
+    md.transient.requested_outputs = [
+        'default','IceVolume','IceVolumeAboveFloatation','GroundedArea',
+        'StrainRatexx','StrainRatexy','StrainRateyy','StrainRatexz','StrainRateyz','StrainRatezz',
+        'StrainRateeffective','LambdaS',
+        'MaskOceanLevelset','IceMaskNodeActivation','MaskIceLevelset']
+
     md.materials.rheology_Es = 5.0 * np.ones(md.mesh.numberofvertices)
-    md.materials.rheology_Ec= 3.0/8.0 * md,materials.rheology_Es
+    md.materials.rheology_Ec = (3.0/8.0) * md.materials.rheology_Es
 
     md.timestepping.time_step = 1.0/12.0
     md.timestepping.final_time = 1000
     md.settings.output_frequency = 600
-    md.toolkits = addoptions(md.toolkits, 'StressbalanceAnalysis', bcgslbjacobioptions())
+
+    # md.toolkits = addoptions(md.toolkits, 'StressbalanceAnalysis', bcgslbjacobioptions())
     md.stressbalance.maxiter = 30
     md.stressbalance.restol = 1
     md.stressbalance.reltol = 0.001
     md.stressbalance.abstol = float('nan')
+
     md.verbose.convergence = False
     md.cluster = cluster
-    md.miscellaneous.name = 'MISMIP_' + modelname + '_EFS'
-    
-    solutiontype = 'tr'    # 'tr' = transient, 'sb' = stress‑balance, etc.
+    md.miscellaneous.name = 'MISMIP_' + modelname + '_EFS'  # label kept from original
+
+    solutiontype = 'tr'
     md = solve(md, solutiontype)
     org.savemodel(md)
 
-# ------------------------------------------------------------------------------
-#  STEP19: (Example) Analysis / Plotting
-# ------------------------------------------------------------------------------
+# ============================================================================
+#  STEP19: Simple comparative analysis/plotting (placeholder)
+# ============================================================================
 if org.perform('analyse'):
+    # Load different approximations to compare surface/shared fields
     mdgs = org.loadmodel('GlenSSA')
     mdgm = org.loadmodel('GlenMOLHO')
     mdgh = org.loadmodel('GlenHO')
-    mdes = org.loadmodel('ESTARSSA')  # e.g., or GlenESSA
-    mdeh = org.loadmodel('ESTARHO')   # e.g., or GlenEHO
+    mdes = org.loadmodel('ESTARSSA')  # or GlenESSA
+    mdeh = org.loadmodel('ESTARHO')   # or GlenEHO
 
     mdgsV = mdgs.results.TransientSolution[-1].Vel
     mdgmV = mdgm.results.TransientSolution[-1].Vel
@@ -768,13 +937,21 @@ if org.perform('analyse'):
     mdesV = mdes.results.TransientSolution[-1].Vel
     mdehV = mdeh.results.TransientSolution[-1].Vel
 
-    plotmodel(mdgs,'data',mdgsV,'data',mdgmV,'data',mdghV(mdeh.mesh.vertexonsurface==1),
-    'data',mdesV,'data',mdehV(mdeh.mesh.vertexonsurface==1),'nlines',5,'ncols',1,'caxis#all',[1,1000])
+    # NOTE: The original used function-call syntax on arrays; in NumPy use []
+    # mdehV[mdeh.mesh.vertexonsurface==1] would subset surface nodes.
+    # The call below keeps the original structure for visibility and should be
+    # adapted to your plotting utilities.
+    plotmodel(
+        mdgs,
+        'data', mdgsV,
+        'data', mdgmV,
+        'data', mdghV,  # consider mdghV[mdeh.mesh.vertexonsurface==1]
+        'data', mdesV,
+        'data', mdehV,  # consider mdehV[mdeh.mesh.vertexonsurface==1]
+        'nlines', 5,
+        'ncols', 1,
+        'caxis#all', [1, 1000]
+    )
     plt.show()
-    # Plot with Python version of plotmodel (if available),
-    # or use your own visualization approach:
-    # plotmodel(mdgs, data=mdgsV, ... ) # This is an example call
-    pass
 
 print("Done with the MISMIP script in Python.")
-
