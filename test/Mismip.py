@@ -67,7 +67,7 @@ md.materials.rheology_B = (1 / (6.338e-25) ** (1 / 3)) * np.ones(md.mesh.numbero
 
 # Glen exponent n and law selector
 md.materials.rheology_n = 3 * np.ones(md.mesh.numberofelements)
-md.materials.rheology_law = 'None'  # use the simple isothermal Glen law
+md.materials.rheology_law = 'Glen'  # use the simple isothermal Glen law
 
 # ------------------------------
 # Boundary conditions — ice shelf front & masks
