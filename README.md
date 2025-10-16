@@ -1,7 +1,7 @@
 # ACCESS-ISSM
 
 ## About the model
-The **ACCESS Ice Sheet System Model (ACCESS-ISSM)** is an implementation of NASA’s [Ice Sheet System Model (ISSM)](https://issm.jpl.nasa.gov/). It is designed for high-resolution, high-performance simulations of ice sheet dynamics, including glacier and ice shelf flow. By leveraging ISSM’s powerful capabilities, ACCESS-ISSM facilitates advanced research into ice sheet behavior, contributing to improved understanding of glaciological processes and their impact on the broader climate system.
+The **ACCESS Ice Sheet Sea-Level Model (ACCESS-ISSM)** is an implementation of NASA’s [Ice Sheet Sea-Level Model (ISSM)](https://issm.jpl.nasa.gov/). It is designed for high-resolution, high-performance simulations of ice sheet dynamics, including glacier and ice shelf flow. By leveraging ISSM’s powerful capabilities, ACCESS-ISSM facilitates advanced research into ice sheet behavior, contributing to improved understanding of glaciological processes and their impact on the broader climate system.
 
 ## About this repository
 This is the **Model Deployment Repository** for the **ACCESS-ISSM** model.
@@ -54,3 +54,4 @@ module avail access-issm
 For users of ACCESS-ISSM model configurations released by ACCESS-NRI, the exact location of the model executables is not required. Model configurations will be updated with new model components when necessary.
 
 For information on contributing your own fixes to the ACCESS-ISSM `spack.yaml`, see the [Hive Docs article](https://docs.access-hive.org.au/models/run-a-model/create-a-prerelease/) on creating a prerelease.
+

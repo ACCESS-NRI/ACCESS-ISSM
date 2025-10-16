@@ -1,11 +1,13 @@
 spack:
   specs:
-    - access-issm@git.2025.03.0
+    - access-issm@git.2025.06.0
+
   packages:
     issm:
       require:
-        - '@git.2025.04.11'
+        - '@git.2025.06.19'
         - +wrappers
+
     # Mark Python 3.9.2 as external so Spack reuses the system module
     python:
       externals:
@@ -27,3 +29,14 @@ spack:
   # Make the solver unify dependencies
   concretizer:
     unify: true
+
+  # Enable generating module files (TCL by default).
+  modules:
+    default:
+      tcl:
+        include:
+          - access-issm
+          - issm
+          - access-triangle
+        projections:
+          access-issm: '{name}/2025.06.0-{hash:7}'
