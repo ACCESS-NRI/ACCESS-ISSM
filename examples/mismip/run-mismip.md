@@ -88,14 +88,44 @@ The following arguments are optional and primarily adjust default PBS settings s
 * `--cpu_node`: Number of CPUs to use per node on _Gadi_. Default = 32.
 * `--wall_time`: PBS job walltime (in minutes). Default = 2880.
 * `--queue`: Name of _Gadi_ queue to submit the job to. Default = normal.
+* `--module_use`: List of `module use` locations, separated by spaces. Default = `g/data/vk83/prerelease/modules`. The order of locations should correspond to the order of associated `module_load` module names below.
+* `--module_load`: List of `module load` module names, separated by spaces. Default = `access-issm/pr26-1`. The order of module names should correspond to the order of associated `module_use` locations above.
+* `--memory`: PBS memory request. Default = 128 GB.
 
 #### 3.3.2 Example execution submission
-The below call provides an example of how the above arguments should be passed to the execution script from your terminal window.
+The below call provides an example of how all of the above arguments should be passed to the execution script from your terminal window.
 
 ```bash
 cd ~/ACCESS-ISSM/examples/mismip/
-python run-mismip.py --project_code <PROJECT_CODE --steps 1 2 --execution_dir <EXECUTION_DIR> --load_only False
+python run-mismip.py \
+--project_code <PROJECT_CODE> \
+--steps 1 2 \
+--execution_dir <EXECUTION_DIR> \
+--storage <STORAGE_LOC_1> <STORAGE_LOC_2> <STORAGE_LOC_n> \
+--model_num 3 \
+--load_only True \
+--num_nodes 2 \
+--cpu_node 32 \
+--wall_time 60 \
+--queue normal \
+--module_use <MODULE_USE_LOC_1> <MODULE_USE_LOC_2> <MODULE_USE_LOC_n> \
+--module_load <MODULE_LOAD_1> <MODULE_LOAD_2> <MODULE_LOAD_n>\
+--memory 40 \
 ```
+
+Those arguments that accept multiple inputs (e.g. `--steps`, `--storage`, `--module_use`, and `--module_load`) are formatted internally as follows:
+* `--steps`: [1, 2]
+* `--storage`: `<STORAGE_LOC_1>+<STORAGE_LOC_2>+<STORAGE_LOC_n>`
+* `--module_use` and `module_load`:
+    ```
+    module use <MODULE_USE_LOC_1>
+    module load <MODULE_LOAD_1>
+    module use <MODUEL_USE_LOC_2>
+    module load <MODULE_LOAD_2>
+    module use <MODUEL_USE_LOC_n>
+    module load <MODULE_LOAD_n>
+
+    ```
 
 ### 3.4 MISMIP Model Configurations
 <!-- TODO: Confirm the configuration definitions are correct -->
@@ -119,11 +149,12 @@ To confirm all settings are correctly configured in your environment and you are
 
 ```bash
 cd ~/ACCESS-ISSM/examples/mismip/
-python run-mismip.py --project_code <PROJECT_CODE> --steps 0 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOC>
+python run-mismip.py --project_code <PROJECT_CODE> --steps 0 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS>
 ```
 
 Without changing any of the default options, this should generate an output similar to the following:
 
+<!-- TODO: Update module use and module load to use official release, not PR26-1 -->
 ```bash
 =============================================================
  ACCESS-ISSM MISMIP+ CONFIGURATION SETTINGS 
@@ -133,7 +164,7 @@ Without changing any of the default options, this should generate an output simi
 ---------------------------------------------
  Project code:                <PROJECT_CODE>
  User login:                  <LOGIN>
- Storage locations:           <STOARAGE_LOC>+gdata/vk83
+ Storage locations:           <STOARAGE_LOCS>+gdata/vk83
  Model number:                1
  Execution directory:         <EXECUTION_DIR>
  Model name:                  mismip_model_1
@@ -142,6 +173,8 @@ Without changing any of the default options, this should generate an output simi
  Load only:                   False
  Walltime:                    2880
  Queue:                       normal
+ Modules to load:             ['access-issm/pr26-1']
+ Module use locations:        ['/g/data/vk83/prerelease/modules']
 =============================================================
 ```
 
@@ -150,9 +183,9 @@ Steps 1 and 2 are both required for complete model parameterisation. These steps
 
 ```bash
 cd ~/ACCESS-ISSM/examples/mismip/
-python run-mismip.py --project_code <PROJECT_CODE> --steps 1 2 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOC>
+python run-mismip.py --project_code <PROJECT_CODE> --steps 1 2 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS>
 ```
 
 This should generate two NetCDF files in `$EXECUTION_DIR/mismip_model_1/`:
-* `mismip_model_1_mesh.nc ` conatins the mesh information generated in Step 1.
+* `mismip_model_1_mesh.nc` conatins the mesh information generated in Step 1.
 * `mismip_model_1_parameterise.nc` contains the mesh information generated in Step 1 and the parameterised fields from Step 2.

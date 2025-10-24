@@ -11,9 +11,12 @@ from parameterize import parameterize
 from loadmodel import loadmodel
 from export_netCDF import export_netCDF
 from setflowequation import setflowequation
-from gadi import gadi
+## TODO: Use gadi rather than gadilocal when merged into main and available in py-tools
+# from gadi import gadi
+from gadilocal import gadi
 from verbose import verbose
 from frictioncoulomb import frictioncoulomb
+from MatlabFuncs import *
 
 # Check that ISSM_DIR environment variable is set
 issm_dir = os.getenv('ISSM_DIR')
@@ -26,18 +29,31 @@ if not issm_dir:
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description = 'Run MISMIP experiments using ACCESS-ISSM.')
 parser.add_argument('--project_code', type = str, required = True, help = 'Project code for job submission')
-parser.add_argument('--model_num', type = int, default = 1, help = 'Model number to use for the experiment')
 parser.add_argument('--steps', type = int, nargs = '+', required = True, help = 'List of steps to run the experiment')
+parser.add_argument('--execution_dir', type = str, required = True, help = 'Directory to execute the job in')
 parser.add_argument('--storage', type = str, required = True, help = 'PBS storage location for job submission')
-parser.add_argument('--load_only', type = bool, default = False, help = 'Should results be loaded only without model execution?')
-parser.add_argument('--walltime', type = str, default = 2880, help = 'Walltime for the job submission')
-parser.add_argument('--queue', type = str, default = 'normal', help = 'Queue to submit the job to')
-parser.add_argument('--execution_dir', type = str, default = './execution', help = 'Directory to execute the job in')
-parser.add_argument('--num_nodes', type = int, default = 1, help = 'Number of nodes to use for the job')
-parser.add_argument('--cpu_node', type = int, default = 32, help = 'Number of CPUs per node to use for the job')
 
-# parser.add_argument('--examples_dir', type = str, default = '~/ACCESS_ISSM/examples', help = 'Source directory for MISMIP+ files')
+parser.add_argument('--model_num', type = int, default = 1, help = 'Model number to use for the experiment')
+parser.add_argument('--load_only', type = bool, default = False, help = 'Should results be loaded only without model execution?')
+parser.add_argument('--num_nodes', type = int, default = 1, help = 'Number of nodes to use for the PBS job')
+parser.add_argument('--cpu_node', type = int, default = 32, help = 'Number of CPUs per node to use for the PBS job')
+parser.add_argument('--walltime', type = str, default = 2880, help = 'Walltime for the PBS job')
+parser.add_argument('--queue', type = str, default = 'normal', help = 'Queue for the PBS job')
+## TODO: Update default module load and use for official release
+parser.add_argument('--module_use', type = str, nargs = '+', default = ['/g/data/vk83/prerelease/modules'], help = 'Module locations for the PBS job')
+parser.add_argument('--module_load', type = str, nargs = '+', default = ['access-issm/pr26-1'], help = 'Modules to load for the PBS job')
+parser.add_argument('--memory', type = int, default = 128, help = 'Memory (in GB) to allocate for the PBS job')
+
 args = parser.parse_args()
+
+# Error checks for arguments
+if args.model_num < 1 or args.model_num > 8:
+    raise RuntimeError("Invalid model number: model_num must be between 1 and 8")
+if not all(step in [0, 1, 2, 3] for step in args.steps):
+    raise RuntimeError("Invalid steps: steps must be a list containing any of [0, 1, 2, 3]")
+if len(args.module_load) != len(args.module_use):
+    raise RuntimeError("module_load and module_use must have the same number of entries")
+
 
 # Set variables from parsed arguments
 model_num = args.model_num
@@ -50,9 +66,12 @@ login = os.getlogin()
 os.makedirs(out_dir, exist_ok=True)
 
 # Setup cluster configuration
-# TODO: Update gadi cluster to operate correctly with all required flags
-cluster = gadi('name', 'gadi.nci.org.au',
+cluster = gadi('name', oshostname(),
                'numnodes', args.num_nodes,
+               'cpuspernode', args.cpu_node,
+               'memory', args.memory,
+               'moduleuse', args.module_use,
+               'moduleload', args.module_load,
                'storage', storage_flag,
                'login', login,
                'srcpath', issm_dir,
@@ -60,9 +79,8 @@ cluster = gadi('name', 'gadi.nci.org.au',
                'executionpath', out_dir,
                'project', args.project_code,
                'queue', args.queue,
-               'time', args.walltime,
-)
-
+               'time', args.walltime
+               )
 
 # --------------------------------------------------------------
 # STEP 0: Print configuration settings
@@ -85,6 +103,8 @@ if 0 in args.steps:
             f" Load only:                   {args.load_only}\n"
             f" Walltime:                    {args.walltime}\n"
             f" Queue:                       {args.queue}\n"
+            f" Module use locations:        {args.module_use}\n"
+            f" Modules to load:             {args.module_load}\n"
             "=============================================================\n")
 
 # --------------------------------------------------------------
@@ -183,9 +203,9 @@ if 3 in args.steps:
     # Set transient simulation parameters
     print(f"Setting transient simulation parameters for model number {model_num}...")
     md.timestepping.time_step = 1
-    md.timestepping.final_time = 5 # TODO: Set to 200000
-    md.settings.output_frequency = 1 # TODO: Set to 2000
-    md.settings.checkpoint_frequency = 1 # TODO: Set to 2000
+    md.timestepping.final_time = 20 # TODO: Set to 200000
+    md.settings.output_frequency = 5 # TODO: Set to 2000
+    md.settings.checkpoint_frequency = 5 # TODO: Set to 2000
 
     # Set stress balance parameters
     print(f"Setting stress balance parameters for model number {model_num}...")
@@ -199,9 +219,13 @@ if 3 in args.steps:
     md.cluster = cluster
     md.miscellaneous.name = model_name + '_Tss1'
     md.settings.solver_residue_threshold = np.nan
+    md.settings.waitonlock = 0
 
-    # Solve the transient steady-state simulation
-    print(f"Solving transient steady-state simulation for model number {model_num}...")
+    # Solve/load the transient steady-state simulation
+    if args.load_only:
+        print(f"Loading transient steady-state results from {out_dir}...")
+    else:
+        print(f"Solving transient steady-state simulation for model number {model_num}...")
     md = solve(md, 'transient', 'loadonly', args.load_only, 'runtimename', False)
 
     # Save the results if loading only
