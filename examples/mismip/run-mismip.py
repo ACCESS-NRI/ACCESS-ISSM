@@ -217,7 +217,7 @@ if 3 in args.steps:
     print(f"Setting miscellaneous parameters for model number {model_num}...")
     md.verbose = verbose('solution', True, 'module', True, 'convergence', True)
     md.cluster = cluster
-    md.miscellaneous.name = model_name + '_Tss1'
+    md.miscellaneous.name = model_name + '_transient_steady_state'
     md.settings.solver_residue_threshold = np.nan
     md.settings.waitonlock = 0
 
@@ -231,4 +231,76 @@ if 3 in args.steps:
     # Save the results if loading only
     if args.load_only:
         print(f"Saving transient steady-state results to {out_dir}...")
+        export_netCDF(md, os.path.join(out_dir, f'{model_name}_{step_name}.nc'))
+
+# --------------------------------------------------------------
+# STEP 4: Run Transient Steady-State Remeshing Simulation
+# --------------------------------------------------------------
+if 4 in args.steps:
+    print("-------------------------------------------------------------")
+    print(f" STEP 4: Running Transient Steady-State Remeshing Simulation for MISMIP+ Model {model_num}")
+    print("-------------------------------------------------------------")
+
+    step_name = 'transient_steady_state_remeshing'
+
+    # Load the parameterised model from Step 2
+    print(f"Loading parameterised model from {out_dir}...")
+    md = loadmodel(os.path.join(out_dir, f'{model_name}_parameterise.nc'))
+
+    ## TODO: Add optional argument to specify remeshing model step?
+
+
+if 5 in args.steps:
+    print("-------------------------------------------------------------")
+    print(f" STEP 5: Running second Transient Steady-State Simulation for MISMIP+ Model {model_num}")
+    print("-------------------------------------------------------------")
+
+    step_name = 'transient_steady_state_2'
+
+    # Load the transient steady-state results from Step 3
+    print(f"Loading transient steady-state results from {out_dir}...")
+    md = loadmodel(os.path.join(out_dir, f'{model_name}_transient_steady_state.nc'))
+
+    # Set flow equation to SSA
+    # NOTE: Only necessary if a remeshed model is loaded, otherwise retained from Step 3
+    md = setflowequation(md, 'SSA', 'all')
+
+    # Re-initialize from the last saved transient state
+    md.initialization.vx = md.results.TransientSolution[-1].Vx
+    md.initialization.vy = md.results.TransientSolution[-1].Vy
+    md.initialization.vel = md.results.TransientSolution[-1].Vel
+    md.geometry.thickness = md.results.TransientSolution[-1].Thickness
+    md.geometry.base = md.results.TransientSolution[-1].Base
+    md.geometry.surface = md.results.TransientSolution[-1].Surface
+    md.mask.ocean_levelset = md.results.TransientSolution[-1].MaskOceanLevelset
+
+    # Set transient simulation parameters (shorter simulation)
+    print(f"Setting transient simulation parameters for model number {model_num}...")
+    md.timestepping.time_step = 1
+    md.timestepping.final_time = 10 ## TODO: Set to 10000
+    md.settings.output_frequency = 2 ## TODO: Set to 1000
+    md.settings.checkpoint_frequency = 2 ## TODO: Set to 5000
+
+    # Set stress balance parameters
+    print(f"Setting stress balance parameters for model number {model_num}...")
+    md.stressbalance.maxiter = 10
+    md.stressbalance.abstol = np.nan
+    md.stressbalance.restol = 1
+
+    # Set miscellaneous parameters
+    print(f"Setting miscellaneous parameters for model number {model_num}...")
+    md.verbose = verbose('solution', True, 'module', True, 'convergence', True)
+    md.cluster = cluster
+    md.settings.waitonlock = 1
+
+    # Solve/load the second transient steady-state simulation
+    if args.load_only:
+        print(f"Loading second transient steady-state results from {out_dir}...")
+    else:
+        print(f"Solving second transient steady-state simulation for model number {model_num}...")
+    md = solve(md, 'transient', 'loadonly', args.load_only, 'runtimename', False)
+
+    # Save the results if loading only
+    if args.load_only:
+        print(f"Saving second transient steady-state results to {out_dir}...")
         export_netCDF(md, os.path.join(out_dir, f'{model_name}_{step_name}.nc'))
