@@ -8,6 +8,7 @@ spack:
         - +wrappers
         - +py-tools
         - ~ad
+        - +openmp
     # Mark Python 3.9.2 as external so Spack reuses the system module
     python:
       externals:
