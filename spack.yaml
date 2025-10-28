@@ -7,6 +7,7 @@ spack:
         - '@git.7f75a90562fae6834a33bdc6276eaa5dc2cbcf66'
         - +wrappers
         - +py-tools
+        - +ad
     # Mark Python 3.9.2 as external so Spack reuses the system module
     python:
       externals:
