@@ -3,12 +3,12 @@ import sys
 import argparse
 import numpy as np
 
+from loadmodel import loadmodel
 from solve import solve
 from model import *
 from bamg import bamg
 from setmask import setmask
 from parameterize import parameterize
-from loadmodel import loadmodel
 from export_netCDF import export_netCDF
 from setflowequation import setflowequation
 ## TODO: Use gadi rather than gadilocal when merged into main and available in py-tools
@@ -41,7 +41,7 @@ parser.add_argument('--walltime', type = str, default = 2880, help = 'Walltime f
 parser.add_argument('--queue', type = str, default = 'normal', help = 'Queue for the PBS job')
 ## TODO: Update default module load and use for official release
 parser.add_argument('--module_use', type = str, nargs = '+', default = ['/g/data/vk83/prerelease/modules'], help = 'Module locations for the PBS job')
-parser.add_argument('--module_load', type = str, nargs = '+', default = ['access-issm/pr26-1'], help = 'Modules to load for the PBS job')
+parser.add_argument('--module_load', type = str, nargs = '+', default = ['access-issm/pr26-18'], help = 'Modules to load for the PBS job')
 parser.add_argument('--memory', type = int, default = 128, help = 'Memory (in GB) to allocate for the PBS job')
 
 args = parser.parse_args()
@@ -247,7 +247,7 @@ if 4 in args.steps:
     print(f"Loading parameterised model from {out_dir}...")
     md = loadmodel(os.path.join(out_dir, f'{model_name}_parameterise.nc'))
 
-    ## TODO: Add optional argument to specify remeshing model step?
+    ## TODO: How do we handle this optional remeshing model step? It requires a model path to be specified
 
 
 if 5 in args.steps:
