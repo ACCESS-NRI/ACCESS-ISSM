@@ -26,10 +26,6 @@ spack:
         prefix: /apps/openmpi/4.1.3
         modules: [openmpi/4.1.3]
       buildable: false
-      extra_attributes:
-        environment:
-          prepend_path:
-            CMAKE_PREFIX_PATH: /apps/openmpi/4.1.3/include/GNU
 
     petsc:
       externals:
