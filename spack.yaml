@@ -23,9 +23,9 @@ spack:
     openmpi:
       externals:
       - spec: openmpi@4.1.3 %gcc
-      prefix: /apps/openmpi/4.1.3
-      modules: [openmpi/4.1.3]
-        buildable: false
+        prefix: /apps/openmpi/4.1.3
+        modules: [openmpi/4.1.3]
+      buildable: false
       extra_attributes:
         environment:
           prepend_path:
@@ -54,7 +54,7 @@ spack:
     
     python:
       externals:
-        - spec: python@3.9.2
-          prefix: /apps/python3/3.9.2
-          modules: [python3/3.9.2]
+      - spec: python@3.9.2
+        prefix: /apps/python3/3.9.2
+        modules: [python3/3.9.2]
       buildable: false
