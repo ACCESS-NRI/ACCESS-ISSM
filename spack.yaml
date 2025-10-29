@@ -16,14 +16,8 @@ spack:
           prefix: /apps/python3/3.9.2
       buildable: false
     openmpi:
-      externals:
-        - spec: openmpi@4.1.3
-          modules:
-            - openmpi/4.1.3
-          prefix: /apps/openmpi/4.1.3
-      buildable: false
-      # require:
-      #   - '@4.1.7'
+      require:
+        - '@4.1.3'
     # “all” can remain empty if you aren’t forcing any particular compiler / MPI
     all:
       require:
