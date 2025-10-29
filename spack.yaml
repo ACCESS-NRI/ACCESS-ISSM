@@ -34,9 +34,9 @@ spack:
         modules: [petsc/3.17.4]
       buildable: false
 
-    netcdf:
+    netcdf-c:
       externals:
-      - spec: netcdf@4.8.0
+      - spec: netcdf-c@4.8.0
         prefix: /apps/netcdf/4.8.0p
         modules: [netcdf/4.8.0]
       buildable: false
