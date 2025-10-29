@@ -1,29 +1,60 @@
 spack:
   specs:
-    - access-issm@git.2025.03.0
-  packages:
-    issm:
-      require:
-        - '@git.2025.04.11'
-        - +wrappers
-    # Mark Python 3.9.2 as external so Spack reuses the system module
-    python:
-      externals:
-        - spec: python@3.9.2
-          modules:
-            - python3/3.9.2
-          prefix: /apps/python3/3.9.2
-      buildable: false
-    openmpi:
-      require:
-        - '@4.1.7'
-    # “all” can remain empty if you aren’t forcing any particular compiler / MPI
-    all:
-      require:
-        - '%gcc@13'
-        - 'target=x86_64'
+    - access-issm@git.2025.06.0
+
   # Create a unified view of all installed packages
   view: true
   # Make the solver unify dependencies
   concretizer:
     unify: true
+
+  packages:
+    all:
+      require:
+        - '%gcc@13'
+        - 'target=x86_64'
+
+    issm:
+      require:
+        - '@git.d52ab3f049920f1a5b0432938f1279ba09c3a8cf'
+        - +wrappers
+        - +py-tools
+
+    openmpi:
+      externals:
+      - spec: openmpi@4.1.3 %gcc
+      prefix: /apps/openmpi/4.1.3
+      modules: [openmpi/4.1.3]
+        buildable: false
+      extra_attributes:
+        environment:
+          prepend_path:
+            CMAKE_PREFIX_PATH: /apps/openmpi/4.1.3/include/GNU
+
+    petsc:
+      externals:
+      - spec: petsc@3.17.4
+        prefix: /apps/petsc/3.17.4
+        modules: [petsc/3.17.4]
+      buildable: false
+
+    netcdf:
+      externals:
+      - spec: netcdf@4.8.0
+        prefix: /apps/netcdf/4.8.0p
+        modules: [netcdf/4.8.0]
+      buildable: false
+
+    hdf5:
+      externals:
+      - spec: hdf5@1.10.7
+        prefix: /apps/hdf5/1.10.7p
+        modules: [hdf5/1.10.7]
+      buildable: false
+    
+    python:
+      externals:
+        - spec: python@3.9.2
+          prefix: /apps/python3/3.9.2
+          modules: [python3/3.9.2]
+      buildable: false
