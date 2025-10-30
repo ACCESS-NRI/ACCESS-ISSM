@@ -57,9 +57,9 @@ spack:
 
     intel-mkl:
       externals:
-      - spec: intel-mkl@2022.2.0
-        prefix: /apps/intel-ct/2022.2.0/mkl
-        modules: [intel-mkl/2022.2.0]
+      - spec: intel-mkl@2020.3.304
+        prefix: /apps/intel-ct/2020.3.304/mkl
+        modules: [intel-mkl/2020.3.304]
       buildable: false
 
     py-cython:
