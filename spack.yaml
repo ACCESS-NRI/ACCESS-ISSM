@@ -62,3 +62,10 @@ spack:
         modules: [intel-mkl/2022.2.0]
       buildable: false
 
+    py-cython:
+      externals:
+      - spec: py-cython@0.29.22
+        prefix: /apps/python3/3.9.2
+        modules: [python3/3.9.2]
+      buildable: false
+
