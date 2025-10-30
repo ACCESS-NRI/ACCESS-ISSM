@@ -4,7 +4,7 @@ spack:
   packages:
     issm:
       require:
-        - '@git.2025.04.11'
+        - '@git.d52ab3f049920f1a5b0432938f1279ba09c3a8cf'
         - +wrappers
         - +py-tools
     # Mark Python 3.9.2 as external so Spack reuses the system module
