@@ -4,7 +4,7 @@ spack:
   packages:
     issm:
       require:
-        - '@git.d52ab3f049920f1a5b0432938f1279ba09c3a8cf'
+        - '@git.4a8c078eefe06f23665322e153b35f8594b4e626'
         - +wrappers
         - +py-tools
         - +ad
