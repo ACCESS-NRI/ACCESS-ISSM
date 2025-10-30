@@ -9,11 +9,11 @@ from model import *
 from bamg import bamg
 from setmask import setmask
 from parameterize import parameterize
-# from export_netCDF import export_netCDF
+from export_netCDF import export_netCDF
 from setflowequation import setflowequation
 ## TODO: Use gadi rather than gadilocal when merged into main and available in py-tools
-# from gadi import gadi
-from gadilocal import gadi
+from gadi import gadi
+# from gadilocal import gadi
 from verbose import verbose
 from frictioncoulomb import frictioncoulomb
 from MatlabFuncs import *
@@ -146,7 +146,7 @@ if 1 in args.steps:
 
     # Save the model
     print(f"Saving mesh to {out_dir}...")
-    # export_netCDF(md, os.path.join(out_dir, f'{model_name}_{step_name}.nc'))
+    export_netCDF(md, os.path.join(out_dir, f'{model_name}_{step_name}.nc'))
 
 # --------------------------------------------------------------
 # STEP 2: Parameterise the model
@@ -160,7 +160,7 @@ if 2 in args.steps:
 
     # Load the mesh created in Step 1
     print(f"Loading mesh from {out_dir}...")
-    # md = loadmodel(os.path.join(out_dir, f'{model_name}_mesh.nc'))
+    md = loadmodel(os.path.join(out_dir, f'{model_name}_mesh.nc'))
         
     # Set mask (assume all ice is grounded)
     print(f"Parameterising model for model number {model_num}...")
@@ -171,7 +171,7 @@ if 2 in args.steps:
 
     # Save the parameterised model
     print(f"Saving parameterised model to {out_dir}...")
-    # export_netCDF(md, os.path.join(out_dir, f'{model_name}_{step_name}.nc'))
+    export_netCDF(md, os.path.join(out_dir, f'{model_name}_{step_name}.nc'))
 
 # --------------------------------------------------------------
 # STEP 3: Run Transient Steady-State Simulation
@@ -185,7 +185,7 @@ if 3 in args.steps:
 
     # Load the parameterised model from Step 2
     print(f"Loading parameterised model from {out_dir}...")
-    # md = loadmodel(os.path.join(out_dir, f'{model_name}_parameterise.nc'))
+    md = loadmodel(os.path.join(out_dir, f'{model_name}_parameterise.nc'))
 
     # Set flow equation to SSA
     print(f"Setting flow equation to SSA for model number {model_num}...")
