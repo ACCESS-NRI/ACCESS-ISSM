@@ -53,6 +53,9 @@ spack:
       - spec: python@3.9.2
         prefix: /apps/python3/3.9.2
         modules: [python3/3.9.2]
+        environment:
+          set:
+            LD_LIBRARY_PATH: /apps/python3/3.9.2/lib
       buildable: false
 
     intel-mkl:
