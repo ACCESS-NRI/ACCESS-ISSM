@@ -4,6 +4,12 @@
     "issm"
   ],
   "injection": [
-    "access-triangle"
+    "access-triangle",
+    "open-mpi",
+    "petsc",
+    "netcdf",
+    "hdf5",
+    "intel-mkl",
+    "python"
   ]
 }
