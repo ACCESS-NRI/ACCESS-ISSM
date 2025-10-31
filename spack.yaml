@@ -1,29 +1,44 @@
 spack:
   specs:
-    - access-issm@git.2025.03.0
-  packages:
-    issm:
-      require:
-        - '@git.2025.04.11'
-        - +wrappers
-    # Mark Python 3.9.2 as external so Spack reuses the system module
-    python:
-      externals:
-        - spec: python@3.9.2
-          modules:
-            - python3/3.9.2
-          prefix: /apps/python3/3.9.2
-      buildable: false
-    openmpi:
-      require:
-        - '@4.1.7'
-    # “all” can remain empty if you aren’t forcing any particular compiler / MPI
-    all:
-      require:
-        - '%gcc@13'
-        - 'target=x86_64'
+    - access-issm@git.2025.06.0
+
   # Create a unified view of all installed packages
   view: true
   # Make the solver unify dependencies
   concretizer:
     unify: true
+
+  packages:
+    all:
+      require:
+        - 'target=x86_64'
+
+    issm:
+      require:
+        - '@git.d52ab3f049920f1a5b0432938f1279ba09c3a8cf'
+        - +wrappers
+        - +py-tools
+
+    openmpi:
+      require:
+        - '@4.1.3'
+
+    petsc:
+      require:
+        - '@3.17.4'
+    
+    netcdf-c:
+      require:
+        - '@4.8.0p'
+
+    hdf5:
+      require:
+        - '@1.10.7p'
+
+    intel-mkl:
+      require:
+        - '@2020.3.304'
+
+    python:
+      require:
+        - '@3.11.7'
