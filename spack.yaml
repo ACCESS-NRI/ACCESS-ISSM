@@ -4,19 +4,14 @@ spack:
   packages:
     issm:
       require:
-        - '@git.4a8c078eefe06f23665322e153b35f8594b4e626'
+        - '@git.8aa05ae77bfb1e99eeff14df033709f9ab2c20ce'
         - +wrappers
         - +py-tools
         - +ad
-        - ~openmp
     # Mark Python 3.9.2 as external so Spack reuses the system module
     python:
-      externals:
-        - spec: python@3.9.2
-          modules:
-            - python3/3.9.2
-          prefix: /apps/python3/3.9.2
-      buildable: false
+      require:
+        - '@3.11.7'
     openmpi:
       require:
         - '@4.1.3'
