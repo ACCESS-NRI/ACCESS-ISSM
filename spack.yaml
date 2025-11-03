@@ -7,11 +7,16 @@ spack:
         - '@git.8aa05ae77bfb1e99eeff14df033709f9ab2c20ce'
         - +wrappers
         - +py-tools
-        - +ad
-    # Mark Python 3.9.2 as external so Spack reuses the system module
     python:
       require:
         - '@3.11.7'
+    
+    py-numpy:
+      externals:
+        - spec: 'py-numpy'
+          prefix: /apps/python3/3.11.7/lib/python3.11/site-packages/numpy
+      buildable: True
+      
     openmpi:
       require:
         - '@4.1.3'
