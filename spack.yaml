@@ -1,21 +1,15 @@
 spack:
   specs:
-    - access-issm@git.2025.03.0
+    - access-issm@git.2025.11.0
   packages:
     issm:
       require:
-        - '@git.8aa05ae77bfb1e99eeff14df033709f9ab2c20ce'
+        - '@git.2025.11.06'
         - +wrappers
         - +py-tools
     python:
       require:
-        - '@3.11.7'
-    
-    py-numpy:
-      externals:
-        - spec: 'py-numpy'
-          prefix: /apps/python3/3.11.7/lib/python3.11/site-packages/numpy
-      buildable: True
+        - '@3.9.2'
       
     openmpi:
       require:
