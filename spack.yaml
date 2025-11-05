@@ -33,4 +33,4 @@ spack:
         include:
           - python
         projections:
-          - python: '{name}/3.11.7'
+          python: '{name}/3.11.7'
