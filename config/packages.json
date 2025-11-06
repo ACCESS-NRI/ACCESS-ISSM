@@ -5,7 +5,6 @@
   ],
   "injection": [
     "openmpi",
-    "access-triangle",
-    "python"
+    "access-triangle"
   ]
 }
