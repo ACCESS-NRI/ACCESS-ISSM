@@ -13,7 +13,9 @@ spack:
           modules:
             - python3/3.11.7
           prefix: /apps/python3/3.11.7
-      buildable: false
+          buildable: false
+      require:
+        - '@3.11.7'
     openmpi:
       require:
         - '@4.1.7'
@@ -31,6 +33,6 @@ spack:
     default:
       tcl:
         include:
-          - python3
+          - python
         projections:
-          python3: 'python3/3.11.7'
+          python: 'python3/3.11.7'
