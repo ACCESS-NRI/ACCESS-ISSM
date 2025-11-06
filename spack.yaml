@@ -36,3 +36,4 @@ spack:
           - python
         projections:
           python: 'python3/3.11.7'
+          openmpi: 'openmpi/4.1.7'
