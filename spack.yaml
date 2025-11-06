@@ -10,10 +10,10 @@ spack:
 
     python:
       externals:
-        - spec: python@3.9.2
+        - spec: python@3.11.7
           modules:
-            - python3/3.9.2
-          prefix: /apps/python3/3.9.2
+            - python3/3.11.7
+          prefix: /apps/python3/3.11.7
       buildable: false
 
     py-numpy:
