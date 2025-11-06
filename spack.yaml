@@ -9,12 +9,6 @@ spack:
         - +py-tools
 
     python:
-      externals:
-        - spec: python@3.11.7
-          modules:
-            - python3/3.11.7
-          prefix: /apps/python3/3.11.7
-      buildable: false
       require:
         - '@3.11.7'
 
