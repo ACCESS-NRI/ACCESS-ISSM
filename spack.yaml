@@ -9,8 +9,12 @@ spack:
         - +py-tools
 
     python:
-      require:
-        - '@3.11.14'
+      externals:
+        - spec: python@3.9.2
+          modules:
+            - python3/3.9.2
+          prefix: /apps/python3/3.9.2
+      buildable: false
 
     py-numpy:
       require:
