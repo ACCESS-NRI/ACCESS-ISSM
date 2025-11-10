@@ -41,7 +41,7 @@ parser.add_argument('--walltime', type = str, default = 2880, help = 'Walltime f
 parser.add_argument('--queue', type = str, default = 'normal', help = 'Queue for the PBS job')
 ## TODO: Update default module load and use for official release
 parser.add_argument('--module_use', type = str, nargs = '+', default = ['/g/data/vk83/prerelease/modules'], help = 'Module locations for the PBS job')
-parser.add_argument('--module_load', type = str, nargs = '+', default = ['access-issm/pr26-18'], help = 'Modules to load for the PBS job')
+parser.add_argument('--module_load', type = str, nargs = '+', default = ['access-issm/pr28-23'], help = 'Modules to load for the PBS job')
 parser.add_argument('--memory', type = int, default = 128, help = 'Memory (in GB) to allocate for the PBS job')
 
 args = parser.parse_args()
