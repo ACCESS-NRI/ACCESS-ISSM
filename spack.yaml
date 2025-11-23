@@ -7,7 +7,7 @@ spack:
         - '@git.2025.11.06'
         - +wrappers
         - +py-tools
-        - ~ad
+        - +ad
 
     python:
       require:
