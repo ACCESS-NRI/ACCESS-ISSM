@@ -4,10 +4,10 @@ spack:
   packages:
     issm:
       require:
-        - '@git.2025.11.06'
+        - '@git.2025.11.24'
         - +wrappers
         - +py-tools
-        - +ad
+        - ~ad
 
     python:
       require:
