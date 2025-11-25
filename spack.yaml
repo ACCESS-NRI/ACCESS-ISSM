@@ -1,22 +1,70 @@
 spack:
   specs:
-    - access-issm@git.2025.03.0
+    - access-issm@git.2025.11.0
   packages:
     issm:
       require:
-        - '@git.2025.04.11'
+        - '@git.2025.11.24'
         - +wrappers
-    # Mark Python 3.9.2 as external so Spack reuses the system module
+        - +py-tools
+        - ~ad
+
     python:
-      externals:
-        - spec: python@3.9.2
-          modules:
-            - python3/3.9.2
-          prefix: /apps/python3/3.9.2
-      buildable: false
+      require:
+        - '@3.11.7'
+
+    py-numpy:
+      require:
+        - '@1.26.4'
+
     openmpi:
       require:
-        - '@4.1.7'
+        - '@4.1.3'
+
+    access-triangle:
+      require:
+        - '@1.6.1'
+
+    petsc:
+      require:
+        - '@3.21.1'
+
+    metis:
+      require:
+        - '@5.1.0'
+
+    mumps:
+      require:
+        - '@5.6.2'
+
+    parmetis:
+      require:
+        - '@4.0.3'
+
+    scalapack:
+      require:
+        - '@2.2.0'
+
+    autoconf:
+      require:
+        - '@2.72'
+
+    automake:
+      require:
+        - '@1.16.5'
+
+    libtool:
+      require:
+        - '@2.4.7'
+
+    m4:
+      require:
+        - '@1.4.19'
+
+    m1qn3:
+      require:
+        - '@3.3'
+
     # “all” can remain empty if you aren’t forcing any particular compiler / MPI
     all:
       require:
