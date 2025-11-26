@@ -52,8 +52,8 @@ Interacting with {{ model }} requires the `$ISSM_DIR` and `$PYTHONPATH` environm
 
 <!-- TODO: Update to use official release, not PR26-1 -->
 ```bash
-module use /g/data/vk83/prerelease/modules
-module load access-issm/pr26-1
+module use /g/data/vk83/modules
+module load access-issm/2025.11.0
 ```
 
 In addition, we make use of Python tools to control the modelling workflow and interact with the model files. To prevent the need for all users to maintain individual Python environments, we can leverage the `conda/analysis3` environment maintained by ACCESS-NRI. To load the Python environment, run:
@@ -128,19 +128,45 @@ Those arguments that accept multiple inputs (e.g. `--steps`, `--storage`, `--mod
     ```
 
 ### 3.4 MISMIP Model Configurations
-<!-- TODO: Confirm the configuration definitions are correct -->
 The provided execution script supports eight different model configurations of differing resolution and friction laws from MISIP+. These configurations are summarised below. The execution script runs Model 1 by default.
 
-| Model number   | Resolution | Friction law| Flow equation |
-| -------------- | ---------- | ----------- | ------------- |
-| 1              | XX         | XX          | XX            |
-| 2              | XX         | XX          | XX            |
-| 3              | XX         | XX          | XX            |
-| 4              | XX         | XX          | XX            |
-| 5              | XX         | XX          | XX            |
-| 6              | XX         | XX          | XX            |
-| 7              | XX         | XX          | XX            |
-| 8              | XX         | XX          | XX            |
+| Model number   | Resolution (m) | Friction law |
+| -------------- | -------------- | ------------ |
+| 1              | 1000           | Budd         |
+| 2              | 2000           | Budd         |
+| 3              | 1000           | Coulomb      |
+| 4              | 2000           | Coulomb      |
+| 5              | 500            | Budd         |
+| 6              | 500            | Coulomb      |
+| 7              | 200            | Budd         |
+| 8              | 200            | Budd         |
+
+### 3.5 MISMIP Model Experiments
+The provided execution script supports 9 different experiments comprising different combinations of ice flow approximations (i.e. the physics used to represent ice motion) and ice flow laws (i.e. the description of ice deformation as stress is applied). These experiments are summarised below.
+
+| Experiment name   | Ice flow approximation | Ice flow laws |
+| -------------- | --------------  | ------------ |
+| Glen_SSA       | SSA             | Glen            |
+| Glen_HO        | HO              | Glen            |
+| Glen_FS        | FS              | Glen            |
+| Glen_E_SSA     | SSA             | Glen (Enhanced) |
+| Glen_E_HO      | HO              | Glen (Enhanced) |
+| Glen_E_FS      | FS              | Glen (Enhanced) |
+| Estar_SSA      | SSA             | Estar           |
+| Estar_HO       | HO              | Estar           |
+| Estar_FS       | FS              | Estar           |
+
+A summary of each ice flow approximation and ice flow law is provided below:
+
+* Ice flow approximations:
+    - Shelfy Stream Approximation (SSA):...
+    - Higher Order (HO):....
+    - Full-stokes (FS):...
+
+* Ice flow laws:
+    - Glen:...
+    - Glen (Enhanded):...
+    - Estar:...
 
 ## 4 Running MISMIP+ Model 1
 
@@ -159,8 +185,8 @@ Without changing any of the default options, this should generate an output simi
 =============================================================
  ACCESS-ISSM MISMIP+ CONFIGURATION SETTINGS 
 =============================================================
- ISSM directory:              /g/data/vk83/prerelease/apps/spack/0.22/release/linux-rocky8-x86_64/gcc-13.2.0/issm-git.7f75a90562fae6834a33bdc6276eaa5dc2cbcf66_0-git.1990-zn2sczssqy2vfrzcdww6ctl5ziinasap
- Python executable:           /g/data/xp65/public/apps/med_conda_scripts/analysis3-25.09.d/bin/python3
+ ISSM directory:              /g/data/vk83/apps/spack/0.22/release/linux-rocky8-x86_64/gcc-13.2.0/issm-git.2025.11.24_2025.11.24-pd55xlx56v5vuno2lshenunfddfvupnr
+ Python executable:           /g/data/xp65/public/apps/med_conda_scripts/analysis3-25.10.d/bin/python3
 ---------------------------------------------
  Project code:                <PROJECT_CODE>
  User login:                  <LOGIN>
@@ -173,8 +199,8 @@ Without changing any of the default options, this should generate an output simi
  Load only:                   False
  Walltime:                    2880
  Queue:                       normal
- Modules to load:             ['access-issm/pr26-1']
- Module use locations:        ['/g/data/vk83/prerelease/modules']
+ Module use locations:        ['/g/data/vk83/modules']
+ Modules to load:             ['access-issm/2025.11.0']
 =============================================================
 ```
 
@@ -189,3 +215,66 @@ python run-mismip.py --project_code <PROJECT_CODE> --steps 1 2 --execution_dir <
 This should generate two NetCDF files in `$EXECUTION_DIR/mismip_model_1/`:
 * `mismip_model_1_mesh.nc` conatins the mesh information generated in Step 1.
 * `mismip_model_1_parameterise.nc` contains the mesh information generated in Step 1 and the parameterised fields from Step 2.
+
+### 4.2 Model initialisation -- transient steady-state simulations
+Steps 3-7 involve a series of long-term relaxation simulations. Due to additional computational requirements, these steps requires PBS job submissions. The `run-mismip.py` script is configured to handle this automatically for you. To run these steps, simply run:
+
+```bash
+cd ~/ACCESS-ISSM/examples/mismip/
+python run-mismip.py --project_code <PROJECT_CODE> --steps <STEP> --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS>
+```
+
+This will generate a subdirectory within the `$EXECUTION_DIR/mismip_model_1`, to which model input and output files are saved. Amongst other information printed to your terminal, as the PBS job is submitted, you should see output similar to this:
+
+```bash
+Uploading input file and queueing script to Gadi...
+Launching solution sequence on Gadi via SSH...
+<PBS_NUMBER>.gadi-pbs
+Model results must be loaded manually with md = loadresultsfromcluster(md).
+```
+
+where `<PBS_NUMBER>` will be your unique PBS job number. You can monitor the status of the PBS job using `qstat <PBS_NUMBER>`. Once the job is complete, you can retrieve the results of the model run and save these as a NetCDF file simply using the `--load_only` argument, as follows:
+
+```bash
+cd ~/ACCESS-ISSM/examples/mismip/
+python run-mismip.py --project_code <PROJECT_CODE> --steps 1 3 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS> --load_only True
+```
+
+This will generate a NetCDF file in `$EXECUTION_DIR/mismip_model_1/` appended with the name of the corresponding step.
+
+!!! warning
+    It is necessary to run steps 3 - 7 individually as each step sequentially builds on the previous. To do this, it is necessary to repeat each of the above commands with the `--load_only True` option once the given PBS job finishes. For example, to run Steps 3 and 4, the following workflow is recommended:
+
+```bash
+python run-mismip.py --project_code <PROJECT_CODE> --steps 3 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS>
+```
+Once the PBS job finishes, the results of Step 3 can be loaded and saved as a NetCDF for use in Step 4:
+```bash
+python run-mismip.py --project_code <PROJECT_CODE> --steps 3 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS> --load_only True
+```
+Now, Step 4 can be executed:
+```bash
+python run-mismip.py --project_code <PROJECT_CODE> --steps 4 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS>
+```
+Once the PBS job finished, the results of Step 4 can be loaded and saved as a NetCDF for use in Step 5:
+```bash
+python run-mismip.py --project_code <PROJECT_CODE> --steps 4 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS> --load_only True
+```
+
+Step 8 performs a final initialisation step, extruding the model from 2D to 3D. This is saved to file as a NetCDF file and is used to provide the initial conditions for some of the experiments.
+
+### 4.3 Model experiments
+Steps 9 - 21 execute each of the MISMIP experiments, as follows:
+
+| Step Number | Experiment name   |
+| 9 | -------------- |
+| 10 | Glen_SSA       |
+| 11 | Glen_HO        |
+| 12 | Glen_FS        |
+| 13 | Glen_E_SSA     |
+| 14 | Glen_E_HO      |
+| 15 | Glen_E_FS      |
+| 16 | Estar_SSA      |
+| 17 | Estar_HO       |
+| 18 | Estar_FS       |
+
