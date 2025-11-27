@@ -1,4 +1,12 @@
-## 2 Prerequisites
+## About
+
+ACCESS-ISSM integrates the Ice-sheet and Sea-level System Model (ISSM) to the ACCESS climate modelling framework, enabling fully parallel ice-sheet simulations on the [NCI _Gadi_ supercomputer](https://opus.nci.org.au/spaces/Help/pages/90308778/0.+Welcome+to+Gadi#id-0.WelcometoGadi-Overview).
+
+ACCESS-ISSM is maintained and supported by ACCESS-NRI. A high-level description of model components, including the ISSM core, pre-processing utilities, and forcing data are available in the ACCESS-ISSM overview.
+
+The example below reproduces a subset of the ISSM contribution to the third [Marine Ice Sheet Model Intercomparison Project](https://tc.copernicus.org/articles/14/2283/2020/) (MISMIP+) benchmark for ice flow models.
+
+## Prerequisites
 
 !!! warning
     To run {{ model }}, you need to be a member of a project with allocated _Service Units (SU)_. For more information, check [how to join relevant NCI projects](/getting_started/set_up_nci_account#join-relevant-nci-projects).
@@ -14,10 +22,10 @@
 
   For more information on joining specific NCI projects, refer to [How to connect to a project](https://opus.nci.org.au/display/Help/How+to+connect+to+a+project).
 
-## 3 Getting started
+## Getting started
 
-### 3.1 Obtaining files
-An example execution script for the MISMIP+ configuration is available at **[URL]**. To copy these files to your `$HOME` directory, run:
+### Obtaining files
+An example execution script for the MISMIP+ configuration is available at [https://github.com/ACCESS-NRI/ACCESS-ISSM](https://github.com/ACCESS-NRI/ACCESS-ISSM). To copy these files to your `$HOME` directory, run:
 
 <!-- TODO: Update branch to main -->
 ```bash
@@ -30,7 +38,7 @@ This will create a directory named `ACCESS-ISSM` in your `$HOME` directory. The 
 !!! warning
     The execution script uses relative paths. Do not change the file structure of the downloaded files. This documentation assumes that you are _inside_ the `~/ACCESS-ISSM/examples/mismip/` directory when executing all commands.
 
-### 3.1 Workflow overview
+### Workflow overview
 
 Running {{ model }} on _Gadi_ is generally separated into two key components:
 
@@ -39,18 +47,12 @@ Running {{ model }} on _Gadi_ is generally separated into two key components:
 
 _Model parameterisation_ is generally less computationally expensive than model execution steps and can tyically be completed simply using a login node on _Gadi_. Depending on the size and configuration of the model, _Model execution_ typically requires a [PBS job](https://opus.nci.org.au/spaces/Help/pages/90308818/4.+PBS+Jobs) submission due to increased computational need.
 
-The general workflow to run {{ model }} is typically separated into individual "steps", contained within a single execution script. The script itself contains all of the model configuration information and handles all model IO. After each step, the existing model state is saved to file as a NetCDF. Below, we provide a brief overview of the key "steps" contained in the example MISMIP+ configuration provided here:
+The general workflow to run {{ model }} is typically separated into individual "steps", contained within a single execution script. The script itself contains all of the model configuration information and handles all model IO. After each step, the existing model state is saved to file as a NetCDF. 
 
-<!-- TODO: Add overview of all execution steps -->
-* **Step 1: Model parameterisation #1 (Model domain and mesh configuration)** - 
-* **Step 2: Model parameterisation #2 (Initial conditions and configuration)** -
-* ...
-
-### 3.2 Setup environment requirements
+### Setup environment requirements
 
 Interacting with {{ model }} requires the `$ISSM_DIR` and `$PYTHONPATH` environment variables be set to use an appropriate executable and set of Python tools. This is handled automatically when loading the {{ model }} module on _Gadi_. To set these variables in preparation for executing the example script below, run:
 
-<!-- TODO: Update to use official release, not PR26-1 -->
 ```bash
 module use /g/data/vk83/modules
 module load access-issm/2025.11.0
@@ -63,10 +65,10 @@ module use /g/data/xp65/public/modules
 module load conda/analysis3
 ```
 
-### 3.3 Interacting with the execution script
+### Interacting with the execution script
 The model execution process is centered around the execution script. Here, we provide a pre-configured execution script for ease of use. Below, we provide key information about interacting with the execution script.
 
-#### 3.3.1 Script arguments
+#### Script arguments
 To run {{ model }}, key arguments must be passed to the execution script. Below provides an overview of all available arguments (required and optional) that can be passed to the execution script.
 
 **Required arguments**
@@ -84,15 +86,15 @@ The following arguments are optional and primarily adjust default PBS settings s
 
 * `--model_num`: Model configuration to execute (see below). Default = 1.
 * `--load_only`: Load results from the specfied step only. No model execution. Default = False.
-* `--num_nodes`: Number of nodes to use on _Gadi_. Default = 1.
+* `--num_nodes`: Number of nodes to use on _Gadi_. Default = 3.
 * `--cpu_node`: Number of CPUs to use per node on _Gadi_. Default = 32.
 * `--wall_time`: PBS job walltime (in minutes). Default = 2880.
 * `--queue`: Name of _Gadi_ queue to submit the job to. Default = normal.
 * `--module_use`: List of `module use` locations, separated by spaces. Default = `g/data/vk83/prerelease/modules`. The order of locations should correspond to the order of associated `module_load` module names below.
-* `--module_load`: List of `module load` module names, separated by spaces. Default = `access-issm/pr26-1`. The order of module names should correspond to the order of associated `module_use` locations above.
+* `--module_load`: List of `module load` module names, separated by spaces. Default = `access-issm/2025.11.0`. The order of module names should correspond to the order of associated `module_use` locations above.
 * `--memory`: PBS memory request. Default = 128 GB.
 
-#### 3.3.2 Example execution submission
+#### Example execution submission
 The below call provides an example of how all of the above arguments should be passed to the execution script from your terminal window.
 
 ```bash
@@ -127,8 +129,9 @@ Those arguments that accept multiple inputs (e.g. `--steps`, `--storage`, `--mod
 
     ```
 
-### 3.4 MISMIP Model Configurations
-The provided execution script supports eight different model configurations of differing resolution and friction laws from MISIP+. These configurations are summarised below. The execution script runs Model 1 by default.
+## MISMIP Configuration
+### Model Configurations
+The provided execution script supports eight different model configurations of differing resolution and friction laws from MISMIP. These configurations are summarised below. The execution script runs Model 1 by default.
 
 | Model number   | Resolution (m) | Friction law |
 | -------------- | -------------- | ------------ |
@@ -141,7 +144,7 @@ The provided execution script supports eight different model configurations of d
 | 7              | 200            | Budd         |
 | 8              | 200            | Budd         |
 
-### 3.5 MISMIP Model Experiments
+### Model Experiments
 The provided execution script supports 9 different experiments comprising different combinations of ice flow approximations (i.e. the physics used to represent ice motion) and ice flow laws (i.e. the description of ice deformation as stress is applied). These experiments are summarised below.
 
 | Experiment name   | Ice flow approximation | Ice flow laws |
@@ -159,18 +162,18 @@ The provided execution script supports 9 different experiments comprising differ
 A summary of each ice flow approximation and ice flow law is provided below:
 
 * Ice flow approximations:
-    - Shelfy Stream Approximation (SSA):...
-    - Higher Order (HO):....
-    - Full-stokes (FS):...
+    - Shelfy Stream Approximation (SSA): Assumes that vertical shear is negligible, so ice deformation is dominated by horizonatal stretching and sliding. SSA is ideal for fast-flowing ice streams and ice shelves.
+    - Higher Order (HO): Includes both vertical and shear membrane stresses, providing a balance between accuracy and computational cost for grounded ice with moderate flow complexity.
+    - Full-stokes (FS): The complete set of Stokes equations, cpaturing all stress components and deformation modes for the most physically accurate representation of ice flow dynamics.
 
 * Ice flow laws:
-    - Glen:...
-    - Glen (Enhanded):...
-    - Estar:...
+    - Glen: Power-law relationship that links ice strain rate to stress, desribing how ice deforms under load with a stress exponent of 3.
+    - Glen (Enhanded): Applies a multiplicative enhancement factor to the standard Glen law to represent softer or damaged ice that deforms more easily.
+    - Estar: Introduces effective viscosity that blends Glen-type creep with additional physics, providing a smoother, more stable response in fast-flowing or highly-variable regions.
 
-## 4 Running MISMIP+ Model 1
+### Running MISMIP+ Model 1
 
-### 4.1 Configured settings
+#### Configured settings
 To confirm all settings are correctly configured in your environment and you are passing correct arguments to the execution script, Step 0 prints a log of key configuration options. Before proceeding with the model parameterisation and execution, it is recommended to run Step 0, as follows:
 
 ```bash
@@ -180,7 +183,6 @@ python run-mismip.py --project_code <PROJECT_CODE> --steps 0 --execution_dir <EX
 
 Without changing any of the default options, this should generate an output similar to the following:
 
-<!-- TODO: Update module use and module load to use official release, not PR26-1 -->
 ```bash
 =============================================================
  ACCESS-ISSM MISMIP+ CONFIGURATION SETTINGS 
@@ -204,7 +206,25 @@ Without changing any of the default options, this should generate an output simi
 =============================================================
 ```
 
-### 4.1 Model parameterisation
+#### Model steps
+Below, we provide a brief overview of the key "steps" contained in the example MISMIP configuration provided here:
+
+* **Steps 1 - 2: Model parameterisation**
+    - Step 1 - Mesh generation: This step generates an anisotropic model mesh based on the resolution requested (see Section 3.4).
+    - Step 2 - Model configuration and initial conditions: This step configures the model components and sets initial conditions based on the model requested (see Section 3.4).
+
+* **Steps 3 - 8: Model initialisation**
+    - Step 3 - Initial transient relaxation: This step performs a 200,000 year relaxation transient stress balance.
+    - Step 4 - Second transient relaxation: This step performs a second 200,000 year relaxation transient stress balance, using the final state of Step 3 as the initial conditions.
+    - Step 5 - Third transient relaxation: This step performs a third 200,000 year relaxation transient stress balance, using the final state of Step 4 as the initial conditions.
+    - Step 6 - Fourth transient relaxation: This step performs a fourth 200,000 year relaxation transient stress balance, using the final state of Step 5 as the initial conditions.
+    - Step 7 - Fifth transient relaxation: This step performs a fifth 200,000 year relaxation transient stress balance, using the final state of Step 6 as the initial conditions.
+    - Step 8 - 3D Extrusion: This steps perfoms a 3D extrusion from a 2D model mesh to a 3D model mesh, using the final stats of Step 7 as the initial conditions.
+
+* **Steps 9 - 17: MISMIP Model experiments**
+    - Steps 9 - 17 relate to individual MISMIP experiments, summarised in Section 4.3.
+
+#### Model parameterisation
 Steps 1 and 2 are both required for complete model parameterisation. These steps can typically be executed on a _Gadi_ login node and do not require a PBS job submission. To run steps 1 and 2, run:
 
 ```bash
@@ -216,8 +236,8 @@ This should generate two NetCDF files in `$EXECUTION_DIR/mismip_model_1/`:
 * `mismip_model_1_mesh.nc` conatins the mesh information generated in Step 1.
 * `mismip_model_1_parameterise.nc` contains the mesh information generated in Step 1 and the parameterised fields from Step 2.
 
-### 4.2 Model initialisation -- transient steady-state simulations
-Steps 3-7 involve a series of long-term relaxation simulations. Due to additional computational requirements, these steps requires PBS job submissions. The `run-mismip.py` script is configured to handle this automatically for you. To run these steps, simply run:
+#### Model initialisation -- transient steady-state simulations
+Steps 3-7 involve a series of long-term relaxation simulations. Due to additional computational requirements, these steps require PBS job submissions. The `run-mismip.py` script is configured to handle this automatically for you. **These steps must be run sequentially and one at a time**. To execute each step, simply run:
 
 ```bash
 cd ~/ACCESS-ISSM/examples/mismip/
@@ -233,48 +253,76 @@ Launching solution sequence on Gadi via SSH...
 Model results must be loaded manually with md = loadresultsfromcluster(md).
 ```
 
-where `<PBS_NUMBER>` will be your unique PBS job number. You can monitor the status of the PBS job using `qstat <PBS_NUMBER>`. Once the job is complete, you can retrieve the results of the model run and save these as a NetCDF file simply using the `--load_only` argument, as follows:
+where `<PBS_NUMBER>` will be your unique PBS job number. You can monitor the status of the PBS job using `qstat <PBS_NUMBER>`. Once the job is complete, you can retrieve the results of the model run and save these as a NetCDF file by simply running the same command and adding the `--load_only` argument, as follows:
 
 ```bash
 cd ~/ACCESS-ISSM/examples/mismip/
-python run-mismip.py --project_code <PROJECT_CODE> --steps 1 3 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS> --load_only True
+python run-mismip.py --project_code <PROJECT_CODE> --steps <STEP> --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS> --load_only True
 ```
 
-This will generate a NetCDF file in `$EXECUTION_DIR/mismip_model_1/` appended with the name of the corresponding step.
-
-!!! warning
-    It is necessary to run steps 3 - 7 individually as each step sequentially builds on the previous. To do this, it is necessary to repeat each of the above commands with the `--load_only True` option once the given PBS job finishes. For example, to run Steps 3 and 4, the following workflow is recommended:
+This will generate a NetCDF file in `$EXECUTION_DIR/mismip_model_1/` appended with the name of the corresponding step. An example workflow to run Steps 3 and 4 is provided below:
 
 ```bash
+cd ~/ACCESS-ISSM/examples/mismip/
 python run-mismip.py --project_code <PROJECT_CODE> --steps 3 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS>
 ```
 Once the PBS job finishes, the results of Step 3 can be loaded and saved as a NetCDF for use in Step 4:
 ```bash
+cd ~/ACCESS-ISSM/examples/mismip/
 python run-mismip.py --project_code <PROJECT_CODE> --steps 3 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS> --load_only True
 ```
 Now, Step 4 can be executed:
 ```bash
+cd ~/ACCESS-ISSM/examples/mismip/
 python run-mismip.py --project_code <PROJECT_CODE> --steps 4 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS>
 ```
 Once the PBS job finished, the results of Step 4 can be loaded and saved as a NetCDF for use in Step 5:
 ```bash
+cd ~/ACCESS-ISSM/examples/mismip/
 python run-mismip.py --project_code <PROJECT_CODE> --steps 4 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS> --load_only True
 ```
 
-Step 8 performs a final initialisation step, extruding the model from 2D to 3D. This is saved to file as a NetCDF file and is used to provide the initial conditions for some of the experiments.
+Step 8 performs a final initialisation step, extruding the model from 2D to 3D. This is saved to file as a NetCDF file and is used to provide the initial conditions for the experiments.
 
-### 4.3 Model experiments
-Steps 9 - 21 execute each of the MISMIP experiments, as follows:
+#### Model experiments
+Steps 9 - 17 execute each of the MISMIP experiments, as follows:
 
 | Step Number | Experiment name   |
-| 9 | -------------- |
-| 10 | Glen_SSA       |
-| 11 | Glen_HO        |
-| 12 | Glen_FS        |
-| 13 | Glen_E_SSA     |
-| 14 | Glen_E_HO      |
-| 15 | Glen_E_FS      |
-| 16 | Estar_SSA      |
-| 17 | Estar_HO       |
-| 18 | Estar_FS       |
+| -------------- | -------------- |
+| 9 | Glen_SSA       |
+| 10 | Glen_HO        |
+| 11 | Glen_FS        |
+| 12 | Glen_E_SSA     |
+| 13 | Glen_E_HO      |
+| 14 | Glen_E_FS      |
+| 15 | Estar_SSA      |
+| 16 | Estar_HO       |
+| 17 | Estar_FS       |
+
+!!! warning
+    The Full-stokes experiments are included for completeness, although they are untested and reserved for advanced users. To run the Full-stokes experiments, users must edit the `run-mismip.py` directly to remove current warnings and build upon the current implementation. See [Editing the MISMIP configuration](#editing-the-mismip-configuration) for more information.
+
+To run a given MISMIP experiment, simply execute the same commands as above, with the corresponding step number. For exaple, to run the Glen_SSA experiment, simply run:
+
+```bash
+cd ~/ACCESS-ISSM/examples/mismip/
+python run-mismip.py --project_code <PROJECT_CODE> --steps 9 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS>
+```
+
+Once the run is complete (monitor the job progress with `qstat <PBS-NUMBER>`), retrieve the model results using:
+```bash
+cd ~/ACCESS-ISSM/examples/mismip/
+python run-mismip.py --project_code <PROJECT_CODE> --steps 9 --execution_dir <EXECUTION_DIR> --storage <STORAGE_LOCS> --load_only True
+```
+
+## Editing the MISMIP configuration
+While the provided `run-mismip.py` script contains SSA, HO, and FS model experiments, not all experiments have been rigorously tested. Inparticular, the FS model experiments are current disabled by default and will return the following error:
+
+```bash
+raise NotImplementedError("<EXPERIMENT_NAME> experiment has not been tested yet.\n"
+                            "Initial implementation is provided in `mismip/run-mismip.py`, but community testing is required to verify correctness.\n"
+                            "If you conduct testing, please contribute your results back to ACCESS-NRI.\n")
+```
+
+In order to run these experiments, users must directly edit the `run-mismip.py` script to disable such errors and update the configuration as necessary. Once the given experiment has been edited, the experiment can be executed in the same way as any other experiment.
 
