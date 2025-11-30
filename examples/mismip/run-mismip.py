@@ -1,16 +1,42 @@
+"""
+Run MISMIP experiments using ACCESS-ISSM.
+
+This script allows users to run MISMIP experiments using the ACCESS-ISSM framework. Various model configurations are supported, as well as multiple MISMIP experiment types.
+Users can specify which steps of the experiment to run, the model number, and various PBS job submission parameters via command-line arguments.
+
+Usage:
+-------
+    python run-mismip.py --project_code <project_code> --steps <steps> --execution_dir <execution_dir> --storage <storage> [options]
+
+Options:
+-------
+    --project_code <project_code>       Project code for job submission
+    --steps <steps>                     List of steps to run the experiment (e.g., --steps 1 2 3)
+    --execution_dir <execution_dir>     Directory to execute the job in
+    --storage <storage>                 PBS storage location for job submission
+    --model_num <model_num>             Model number to use for the experiment (default: 1)
+    --load_only <load_only>             Should results be loaded only without model execution? (default: False)
+    --num_nodes <num_nodes>             Number of nodes to use for the PBS job (default: 1)
+    --cpu_node <cpu_node>               Number of CPUs per node to use for the PBS job (default: 32)
+    --walltime <walltime>               Walltime for the PBS job (default: 2880)
+    --queue <queue>                     Queue for the PBS job (default: normal)
+    --module_use <module_use>           Module locations for the PBS job (default: /g/data/vk83/modules)
+    --module_load <module_load>         Modules to load for the PBS job (default: access-issm/2025.11.0)
+    --memory <memory>                   Memory (in GB) to allocate for the PBS job (default: 128)
+
+Notes:
+-------
+- This script is designed to be run in an environment where ACCESS-ISSM is installed and configured. If a custom installation is used, ensure that all necessary dependencies are met.
+- Users are encouraged to use the ACCESS-NRI conda/analysis3 environment to ensure all prerequisites are met.
+"""
+
+# Import python modules
 import os
 import sys
 import argparse
 import numpy as np
 
-temp = False
-
-if temp:
-    os.environ['ISSM_DIR'] = '/g/data/vk83/apps/spack/0.22/release/linux-rocky8-x86_64/gcc-13.2.0/issm-git.2025.11.24_2025.11.24-pd55xlx56v5vuno2lshenunfddfvupnr'
-    sys.path.append(os.getenv('ISSM_DIR') + '/lib')
-    sys.path.append(os.getenv('ISSM_DIR') + '/python-tools.zip')
-    os.chdir('/scratch/tm70/lb9857/ACCESS-ISSM/examples/mismip')
-
+# Import custom ISSM functionality
 from loadmodel import loadmodel
 from solve import solve
 from model import *
@@ -27,7 +53,7 @@ from MatlabFuncs import *
 # Check that ISSM_DIR environment variable is set
 issm_dir = os.getenv('ISSM_DIR')
 if not issm_dir:
-    print("Error: ISSM_DIR environment variable is not set correcttly. Try re-running:\n"
+    print("Error: ISSM_DIR environment variable is not set correctly. Try re-running:\n"
           "   module use /g/data/vk83/modules\n"
           "   module load access-issm/2025.11.0")
     sys.exit(1)
@@ -51,28 +77,11 @@ parser.add_argument('--memory', type = int, default = 128, help = 'Memory (in GB
 
 args = parser.parse_args()
 
-if temp:
-    args = argparse.Namespace(
-        project_code='tm70',
-        steps=[5],
-        execution_dir='/scratch/tm70/lb9857/ACCESS-ISSM/examples/mismip/execution',
-        storage='scratch/tm70',
-        model_num=1,
-        load_only=False,
-        num_nodes=1,
-        cpu_node=32,
-        walltime=2880,
-        queue='normal',
-        module_use=['/g/data/vk83/modules'],
-        module_load=['access-issm/2025.11.0'],
-        memory=128
-    )
-
 # Error checks for arguments
 if args.model_num < 1 or args.model_num > 8:
     raise RuntimeError("Invalid model number: model_num must be between 1 and 8")
-if not all(step in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] for step in args.steps):
-    raise RuntimeError("Invalid steps: steps must be a list containing any of [0, 1, 2, 3, 4, 5, 6, 7, 8]")
+if not all( 0 <= step <= 17 for step in args.steps):
+    raise RuntimeError("Invalid steps: steps must be a list of integers between 0 and 17")
 if len(args.module_load) != len(args.module_use):
     raise RuntimeError("module_load and module_use must have the same number of entries")
 
@@ -85,7 +94,7 @@ storage_flag = args.storage + '+gdata/vk83'  # Append gdata/vk83 for ISSM execut
 login = os.getlogin()
 
 # Create output directory if it doesn't exist
-os.makedirs(out_dir, exist_ok=True)
+os.makedirs(out_dir, exist_ok = True)
 
 # Setup cluster configuration
 cluster = gadi('name', oshostname(),
@@ -109,7 +118,7 @@ cluster = gadi('name', oshostname(),
 # --------------------------------------------------------------
 if 0 in args.steps:
     print("=============================================================\n"
-            " ACCESS-ISSM MISMIP+ CONFIGURATION SETTINGS \n"
+            " ACCESS-ISSM MISMIP CONFIGURATION SETTINGS \n"
             "=============================================================\n"
             f" ISSM directory:              {issm_dir}\n"
             f" Python executable:           {sys.executable}\n"
@@ -134,7 +143,7 @@ if 0 in args.steps:
 # --------------------------------------------------------------
 if 1 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 1: Generating mesh for MISMIP+ Model {model_num}")
+    print(f" STEP 1: Generating mesh for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'mesh'
@@ -175,7 +184,7 @@ if 1 in args.steps:
 # --------------------------------------------------------------
 if 2 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 2: Parameterising model for MISMIP+ Model {model_num}")
+    print(f" STEP 2: Parameterising model for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'parameterise'
@@ -201,7 +210,7 @@ if 2 in args.steps:
 # --------------------------------------------------------------
 if 3 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 3: Running Transient Steady-State Simulation for MISMIP+ Model {model_num}")
+    print(f" STEP 3: Running Transient Steady-State Simulation for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'transient_steady_state'
@@ -226,9 +235,9 @@ if 3 in args.steps:
     # Set transient simulation parameters
     print(f"Setting transient simulation parameters for model number {model_num}...")
     md.timestepping.time_step = 1
-    md.timestepping.final_time = 200000 # TODO: Set to 200000
-    md.settings.output_frequency = 2000 # TODO: Set to 2000
-    md.settings.checkpoint_frequency = 2000 # TODO: Set to 2000 ## DO WE NEED THIS? IF IT DOESN'T EXCEED WALL TIME, WE DON'T NEED THE RESTARTS
+    md.timestepping.final_time = 200000
+    md.settings.output_frequency = 2000
+    md.settings.checkpoint_frequency = 2000
 
     # Set stress balance parameters
     print(f"Setting stress balance parameters for model number {model_num}...")
@@ -261,7 +270,7 @@ if 3 in args.steps:
 # --------------------------------------------------------------
 if 4 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 4: Running second Transient Steady-State Simulation for MISMIP+ Model {model_num}")
+    print(f" STEP 4: Running second Transient Steady-State Simulation for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'transient_steady_state_2'
@@ -282,9 +291,9 @@ if 4 in args.steps:
     # Set transient simulation parameters (shorter simulation)
     print(f"Setting transient simulation parameters for model number {model_num}...")
     md.timestepping.time_step = 1
-    md.timestepping.final_time = 10 ## TODO: Set to 10000
-    md.settings.output_frequency = 2 ## TODO: Set to 1000
-    md.settings.checkpoint_frequency = 2 ## TODO: Set to 5000 ## DO WE NEED THIS? IF IT DOESN'T EXCEED WALL TIME, WE DON'T NEED THE RESTARTS
+    md.timestepping.final_time = 200000
+    md.settings.output_frequency = 2000
+    md.settings.checkpoint_frequency = 2000
 
     # Set stress balance parameters
     print(f"Setting stress balance parameters for model number {model_num}...")
@@ -316,7 +325,7 @@ if 4 in args.steps:
 # --------------------------------------------------------------
 if 5 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 5: Running third Transient Steady-State Simulation for MISMIP+ Model {model_num}")
+    print(f" STEP 5: Running third Transient Steady-State Simulation for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'transient_steady_state_3'
@@ -371,7 +380,7 @@ if 5 in args.steps:
 # --------------------------------------------------------------
 if 6 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 6: Running fourth Transient Steady-State Simulation for MISMIP+ Model {model_num}")
+    print(f" STEP 6: Running fourth Transient Steady-State Simulation for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'transient_steady_state_4'
@@ -426,7 +435,7 @@ if 6 in args.steps:
 # --------------------------------------------------------------
 if 7 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 7: Running fifth Transient Steady-State Simulation for MISMIP+ Model {model_num}")
+    print(f" STEP 7: Running fifth Transient Steady-State Simulation for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'transient_steady_state_5'
@@ -481,7 +490,7 @@ if 7 in args.steps:
 # --------------------------------------------------------------
 if 8 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 8: Extruding mesh to 3D for MISMIP+ Model {model_num}")
+    print(f" STEP 8: Extruding mesh to 3D for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'transient_extude'
@@ -517,7 +526,7 @@ if 8 in args.steps:
 # --------------------------------------------------------------
 if 9 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 9: Glen_SSA experiment for MISMIP+ Model {model_num}")
+    print(f" STEP 9: Glen_SSA experiment for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'Glen_SSA'
@@ -575,7 +584,7 @@ if 9 in args.steps:
 # --------------------------------------------------------------
 if 10 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 10: Glen_HO experiment for MISMIP+ Model {model_num}")
+    print(f" STEP 10: Glen_HO experiment for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'Glen_HO'
@@ -636,7 +645,7 @@ if 10 in args.steps:
 # --------------------------------------------------------------
 if 11 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 11: Glen_FS experiment for MISMIP+ Model {model_num}")
+    print(f" STEP 11: Glen_FS experiment for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     raise NotImplementedError("Glen_FS experiment has not been tested yet.\n"
@@ -703,7 +712,7 @@ if 11 in args.steps:
 # --------------------------------------------------------------
 if 12 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 12: Glen_E_SSA experiment for MISMIP+ Model {model_num}")
+    print(f" STEP 12: Glen_E_SSA experiment for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'Glen_E_SSA'
@@ -766,7 +775,7 @@ if 12 in args.steps:
 # --------------------------------------------------------------
 if 13 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 13: Glen_E_HO experiment for MISMIP+ Model {model_num}")
+    print(f" STEP 13: Glen_E_HO experiment for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'Glen_E_HO'
@@ -832,7 +841,7 @@ if 13 in args.steps:
 # --------------------------------------------------------------
 if 14 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 14: Glen_E_FS experiment for MISMIP+ Model {model_num}")
+    print(f" STEP 14: Glen_E_FS experiment for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     raise NotImplementedError("Glen_E_FS experiment has not been tested yet.\n"
@@ -904,7 +913,7 @@ if 14 in args.steps:
 # --------------------------------------------------------------
 if 15 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 15: Estar_SSA experiment for MISMIP+ Model {model_num}")
+    print(f" STEP 15: Estar_SSA experiment for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'Estar_SSA'
@@ -968,7 +977,7 @@ if 15 in args.steps:
 # --------------------------------------------------------------
 if 16 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 16: Estar_HO experiment for MISMIP+ Model {model_num}")
+    print(f" STEP 16: Estar_HO experiment for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     step_name = 'Estar_HO'
@@ -1035,7 +1044,7 @@ if 16 in args.steps:
 # --------------------------------------------------------------
 if 17 in args.steps:
     print("-------------------------------------------------------------")
-    print(f" STEP 17: Estar_FS experiment for MISMIP+ Model {model_num}")
+    print(f" STEP 17: Estar_FS experiment for MISMIP Model {model_num}")
     print("-------------------------------------------------------------")
 
     raise NotImplementedError("Estar_FS experiment has not been tested yet.\n"
