@@ -69,13 +69,19 @@ spack:
       - '@3.3'
 
     # Compilers
-    gcc:
+    c:
       require:
-      - '@13'
+      - 'gcc@13'
+    cxx:
+      require:
+      - 'gcc@13'
+    fortran:
+      require:
+      - 'gcc@13'
+
     # “all” can remain empty if you aren’t forcing any particular compiler / MPI
     all:
-      require:
-      - '%access_gcc'
+      prefer:
       - 'target=x86_64'
   # Create a unified view of all installed packages
   view: true
