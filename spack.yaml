@@ -14,7 +14,7 @@ spack:
 
     python:
       require:
-      - '@3.11.7'
+      - '@3.11.11'
 
     py-numpy:
       require:
@@ -44,7 +44,7 @@ spack:
       require:
       - '@4.0.3'
 
-    scalapack:
+    netlib-scalapack:
       require:
       - '@2.2.0'
 
