@@ -22,7 +22,7 @@ spack:
 
     openmpi:
       require:
-      - '@4.1.7'
+      - '@4.1.5'
 
     access-triangle:
       require:
@@ -71,13 +71,13 @@ spack:
     # Compilers
     c:
       require:
-      - 'gcc@13'
+      - 'gcc@13.2.0'
     cxx:
       require:
-      - 'gcc@13'
+      - 'gcc@13.2.0'
     fortran:
       require:
-      - 'gcc@13'
+      - 'gcc@13.2.0'
 
     # “all” can remain empty if you aren’t forcing any particular compiler / MPI
     all:
