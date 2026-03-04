@@ -68,6 +68,12 @@ spack:
       require:
       - '@3.3'
 
+    # Wokaround till https://github.com/spack/spack-packages/pull/3644
+    # is merged
+    re2c:
+      require:
+      - '@3.1'
+
     # Compilers
     c:
       prefer:
