@@ -44,9 +44,9 @@ spack:
       require:
       - '@4.0.3'
 
-    scalapack:
+    netlib-scalapack:
       require:
-      - 'netlib-scalapack@2.2.0'
+      - '@2.2.0'
 
     autoconf:
       require:
