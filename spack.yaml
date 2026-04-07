@@ -7,10 +7,10 @@ spack:
   packages:
     issm:
       require:
-      - '@git.2025.11.24'
+      - '@git.2026.04.07'
       - +wrappers
       - +py-tools
-      - ~ad
+      - +ad
 
     python:
       require:
