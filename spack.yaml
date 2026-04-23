@@ -1,16 +1,17 @@
 spack:
   definitions:
   - _name: [access-issm]
-  - _version: [2025.11.0]
+  - _version: [2026.05.0]
   specs:
   - access-issm
   packages:
     issm:
       require:
-      - '@git.2025.11.24'
+      - '@git.2026.04.16'
       - +wrappers
       - +py-tools
       - ~ad
+      - +production
 
     python:
       require:
@@ -36,9 +37,9 @@ spack:
       require:
       - '@5.1.0'
 
-    mumps:
+    access-mumps:
       require:
-      - '@5.6.2'
+      - '@5.8.2'
 
     parmetis:
       require:
@@ -76,13 +77,13 @@ spack:
     # Compilers
     c:
       require:
-      - 'gcc@13.2.0'
+      - 'intel-oneapi-compilers@2025.2.0'
     cxx:
       require:
-      - 'gcc@13.2.0'
+      - 'intel-oneapi-compilers@2025.2.0'
     fortran:
       require:
-      - 'gcc@13.2.0'
+      - 'intel-oneapi-compilers@2025.2.0'
 
     # “all” can remain empty if you aren’t forcing any particular compiler / MPI
     all:
