@@ -77,13 +77,13 @@ spack:
     # Compilers
     c:
       require:
-      - 'gcc@13.2.0'
+      - 'intel@2021.10.0'
     cxx:
       require:
-      - 'gcc@13.2.0'
+      - 'intel@2021.10.0'
     fortran:
       require:
-      - 'gcc@13.2.0'
+      - 'intel@2021.10.0'
 
     # “all” can remain empty if you aren’t forcing any particular compiler / MPI
     all:
