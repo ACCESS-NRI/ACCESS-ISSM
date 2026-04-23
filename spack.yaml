@@ -37,9 +37,9 @@ spack:
       require:
       - '@5.1.0'
 
-    mumps:
+    access-mumps:
       require:
-      - '@5.6.2'
+      - '@5.8.2'
 
     parmetis:
       require:
@@ -77,13 +77,13 @@ spack:
     # Compilers
     c:
       require:
-      - 'oneapi@2025.2.0'
+      - 'intel-oneapi-compilers@2025.2.0'
     cxx:
       require:
-      - 'oneapi@2025.2.0'
+      - 'intel-oneapi-compilers@2025.2.0'
     fortran:
       require:
-      - 'oneapi@2025.2.0'
+      - 'intel-oneapi-compilers@2025.2.0'
 
     # “all” can remain empty if you aren’t forcing any particular compiler / MPI
     all:
