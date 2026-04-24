@@ -77,13 +77,13 @@ spack:
     # Compilers
     c:
       require:
-      - 'intel-oneapi-compilers-classic@2021.13.1'
+      - 'intel-oneapi-compilers-classic'
     cxx:
       require:
-      - 'intel-oneapi-compilers-classic@2021.13.1'
+      - 'intel-oneapi-compilers-classic'
     fortran:
       require:
-      - 'intel-oneapi-compilers-classic@2021.13.1'
+      - 'intel-oneapi-compilers-classic'
 
     # “all” can remain empty if you aren’t forcing any particular compiler / MPI
     all:
