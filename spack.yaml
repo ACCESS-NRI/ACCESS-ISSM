@@ -1,7 +1,7 @@
 spack:
   definitions:
   - _name: [issm]
-  - _version: [2026.04.0]
+  - _version: [2025.11.0]
   specs:
   - access-issm
   packages:
