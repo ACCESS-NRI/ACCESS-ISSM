@@ -1,13 +1,13 @@
 spack:
   definitions:
-  - _name: [access-issm]
+  - _name: [issm-AD]
   - _version: [2026.04.0]
   specs:
   - access-issm
   packages:
     issm:
       require:
-      - '@git.2025.11.24'
+      - '@git.2026.04.16'
       - +wrappers
       - +py-tools
       - +ad
@@ -67,6 +67,14 @@ spack:
     m1qn3:
       require:
       - '@3.3'
+
+    codipack:
+      require:
+      - '@2.3.0'
+
+    medipack:
+      require:
+      - '@1.1.0'
 
     # Wokaround due to https://github.com/spack/spack-packages/pull/3644
     re2c:
