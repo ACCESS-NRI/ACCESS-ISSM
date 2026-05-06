@@ -1,6 +1,6 @@
 spack:
   definitions:
-  - _name: [access-issm]
+  - _name: [issm-AD]
   - _version: [2026.04.0]
   specs:
   - access-issm
