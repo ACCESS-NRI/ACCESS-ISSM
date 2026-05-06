@@ -1,6 +1,6 @@
 spack:
   definitions:
-  - _name: [issm-AD]
+  - _name: [access-issm]
   - _version: [2026.04.0]
   specs:
   - access-issm
@@ -96,6 +96,11 @@ spack:
     all:
       prefer:
       - 'target=x86_64'
+  modules:
+    default:
+      tcl:
+        projections:
+          access-issm: ISSM-ad/{name}
   # Create a unified view of all installed packages
   view: true
   # Make the solver unify dependencies
