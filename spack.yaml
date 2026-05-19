@@ -7,7 +7,8 @@ spack:
   packages:
     issm:
       require:
-      - '@git.2025.11.24'
+      - '@issm-nuopc-v1'
+      - +nuopc
       - +wrappers
       - +py-tools
       - ~ad
@@ -23,6 +24,10 @@ spack:
     openmpi:
       require:
       - '@4.1.5'
+
+    esmf:
+      require:
+      - '@8.7.0'
 
     access-triangle:
       require:
