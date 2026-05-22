@@ -100,8 +100,7 @@ spack:
     default:
       tcl:
         projections:
-          access-issm+ad: access-issm-AD/{version}
-          access-issm~ad: access-issm/{version}
+          access-issm: {name}{^issm.variants.ad}/{version}
   # Create a unified view of all installed packages
   view: true
   # Make the solver unify dependencies
