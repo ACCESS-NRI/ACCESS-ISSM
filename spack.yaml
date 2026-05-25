@@ -64,10 +64,6 @@ spack:
       require:
       - '@1.4.19'
 
-    m1qn3:
-      require:
-      - '@3.3'
-
     codipack:
       require:
       - '@2.2.0'
