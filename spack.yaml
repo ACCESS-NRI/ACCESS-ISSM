@@ -1,7 +1,7 @@
 spack:
   definitions:
   - _name: [access-issm]
-  - _version: [2026.05.0]
+  - _version: [2026.06.0]
   specs:
   - access-issm
   packages:
@@ -10,7 +10,7 @@ spack:
       - '@git.2026.05.18'
       - +wrappers
       - +py-tools
-      - ~ad
+      - +ad
       - +production
 
     python:
