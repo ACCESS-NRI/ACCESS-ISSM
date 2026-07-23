@@ -1,17 +1,41 @@
 spack:
   definitions:
   - _name: [access-issm]
-  - _version: [2026.06.0]
+  - _version: [2026.07.0]
+
   specs:
   - access-issm
+
   packages:
     issm:
       require:
       - '@git.2026.05.18'
       - +wrappers
       - +py-tools
-      - +ad
       - +production
+      - +cuda
+      - cuda_arch=80
+      - +hypre
+
+    cuda:
+      externals:
+      - spec: cuda@12.3.2
+        prefix: /apps/cuda/12.3.2
+        modules: [cuda/12.3.2]
+      buildable: false
+
+    petsc:
+      require:
+      - '@3.21.1'
+      - +cuda
+      - +hypre
+      - cuda_arch=80
+
+    hypre:
+      require:
+      - '@2.31.0'
+      - +cuda
+      - cuda_arch=80
 
     python:
       require:
@@ -23,15 +47,11 @@ spack:
 
     openmpi:
       require:
-      - '@4.1.5'
+      - '@4.1.3'
 
     access-triangle:
       require:
       - '@1.6.1'
-
-    petsc:
-      require:
-      - '@3.21.1'
 
     metis:
       require:
@@ -65,12 +85,11 @@ spack:
       require:
       - '@1.4.19'
 
-    # Wokaround due to https://github.com/spack/spack-packages/pull/3644
+    # Workaround: https://github.com/spack/spack-packages/pull/3644
     re2c:
       require:
       - '@3.1'
 
-    # Compilers
     c:
       require:
       - 'intel-oneapi-compilers@2025.2.0'
@@ -81,17 +100,16 @@ spack:
       require:
       - 'intel-oneapi-compilers@2025.2.0'
 
-    # “all” can remain empty if you aren’t forcing any particular compiler / MPI
     all:
       prefer:
       - 'target=x86_64'
+
   modules:
     default:
       tcl:
         projections:
-          access-issm: "{name}{^issm.variants.ad}/{version}"
-  # Create a unified view of all installed packages
+          access-issm: "{name}/{version}"
+
   view: true
-  # Make the solver unify dependencies
   concretizer:
     unify: true
