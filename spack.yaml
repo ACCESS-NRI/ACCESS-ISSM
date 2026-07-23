@@ -19,9 +19,9 @@ spack:
 
     cuda:
       externals:
-      - spec: cuda@12.5.1
-        prefix: /apps/cuda/12.5.1
-        modules: [cuda/12.5.1]
+      - spec: cuda@12.6.2
+        prefix: /apps/cuda/12.6.2
+        modules: [cuda/12.6.2]
       buildable: false
 
     petsc:
@@ -97,13 +97,13 @@ spack:
 
     c:
       require:
-      - 'intel-oneapi-compilers@2025.2.0'
+      - 'gcc@14.2.0'
     cxx:
       require:
-      - 'intel-oneapi-compilers@2025.2.0'
+      - 'gcc@14.2.0'
     fortran:
       require:
-      - 'intel-oneapi-compilers@2025.2.0'
+      - 'gcc@14.2.0'
 
     all:
       prefer:
