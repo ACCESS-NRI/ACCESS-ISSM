@@ -19,9 +19,9 @@ spack:
 
     cuda:
       externals:
-      - spec: cuda@12.6.2
-        prefix: /apps/cuda/12.6.2
-        modules: [cuda/12.6.2]
+      - spec: cuda@12.3.2
+        prefix: /apps/cuda/12.3.2
+        modules: [cuda/12.3.2]
       buildable: false
 
     petsc:
