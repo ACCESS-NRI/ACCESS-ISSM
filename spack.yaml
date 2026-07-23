@@ -97,13 +97,13 @@ spack:
 
     c:
       require:
-      - 'gcc@14.2.0'
+      - 'gcc@13.2.0'
     cxx:
       require:
-      - 'gcc@14.2.0'
+      - 'gcc@13.2.0'
     fortran:
       require:
-      - 'gcc@14.2.0'
+      - 'gcc@13.2.0'
 
     all:
       prefer:
