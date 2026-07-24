@@ -19,7 +19,7 @@ spack:
 
     cuda:
       externals:
-      - spec: cuda@12.3.2
+      - spec: cuda@12.3.2+allow-unsupported-compilers
         prefix: /apps/cuda/12.3.2
         modules: [cuda/12.3.2]
       buildable: false
