@@ -47,9 +47,13 @@ spack:
 
     openmpi:
       externals:
-      - spec: openmpi@4.1.3+cuda
+      - spec: openmpi@4.1.3+cuda %gcc@13.2.0
         prefix: /apps/openmpi/4.1.3
         modules: [openmpi/4.1.3]
+        extra_attributes:
+          environment:
+            prepend_path:
+              CMAKE_PREFIX_PATH: /apps/openmpi/4.1.3/include/GNU
       buildable: false
       require:
       - '@4.1.3+cuda'
