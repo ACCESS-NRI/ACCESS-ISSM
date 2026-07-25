@@ -1,0 +1,161 @@
+# Spack environment — ISSM with GPU-accelerated Hypre BoomerAMG
+#
+# Target hardware : NVIDIA A100 (SM 80), Gadi dgxa100 queue
+# CUDA version    : 12.3.2 (external from Gadi module)
+# MPI             : OpenMPI 4.1.3 (external from Gadi module)
+# PETSc           : 3.21.1 +cuda +hypre, cuda_arch=80
+# Hypre           : 2.31.0 +cuda, cuda_arch=80
+#                   (Hypre Spack package passes --with-gpu-arch=80 automatically)
+#
+# Usage:
+#   cd /path/to/ACCESS-ISSM
+#   spack env create gpu-hypre spack_gpu_hypre.yaml
+#   spack env activate gpu-hypre
+#   spack install
+#
+# Runtime notes (from benchmark work, test/GPU_CHANGES.md items 21-26):
+#   - mat_block_size=2 is required for BoomerAMG convergence on SSA (2 DOFs/node)
+#   - vec_type=cuda required for all Hypre variants when CUDA is initialised
+#   - mat_type=hypre (native ParCSR) crashes in Hypre 2.31.0 (memory.c:777);
+#     use mat_type=aijcusparse (Hypre-GPU-aijcusparse) as the production path
+#   - See test/gpu_hypre_test.py for the full solver option dictionaries
+
+spack:
+  definitions:
+  - _name: [access-issm-gpu-hypre]
+  - _version: [2026.07.0]
+
+  specs:
+  - access-issm
+
+  packages:
+    # ── ISSM: GPU + Hypre build ──────────────────────────────────────────────
+    issm:
+      require:
+      - '@git.2026.05.18'
+      - +wrappers
+      - +py-tools
+      - +production
+      - +cuda
+      - cuda_arch=80
+      - +hypre
+
+    # ── CUDA: external from Gadi module system ───────────────────────────────
+    # /apps/cuda/12.3.2 corresponds to module cuda/12.3.2
+    # This is the version used in all manual benchmark runs on dgxa100.
+    cuda:
+      externals:
+      - spec: cuda@12.3.2
+        prefix: /apps/cuda/12.3.2
+        modules: [cuda/12.3.2]
+      buildable: false
+
+    # ── PETSc: CUDA + Hypre ──────────────────────────────────────────────────
+    # +cuda enables VECCUDA vectors + MATAIJCUSPARSE matrices (SpMV via cuSPARSE)
+    # +hypre links Hypre into PETSc, enabling pc_type=hypre at runtime
+    # cuda_arch=80 propagated from issm variant; PETSc passes
+    #   --with-cuda-gencodearch=80 to nvcc
+    petsc:
+      require:
+      - '@3.21.1'
+      - +cuda
+      - +hypre
+      - cuda_arch=80
+
+    # ── Hypre: GPU-native BoomerAMG ──────────────────────────────────────────
+    # +cuda enables on-device AMG setup and V-cycles
+    # cuda_arch=80 → Hypre Spack package passes --with-gpu-arch=80
+    #   (this is the Spack-managed equivalent of the manual --with-hypre-gpu-arch=80
+    #    flag discovered in PETSc's config/BuildSystem/config/packages/hypre.py:26)
+    hypre:
+      require:
+      - '@2.31.0'
+      - +cuda
+      - cuda_arch=80
+
+    # ── Python stack ─────────────────────────────────────────────────────────
+    python:
+      require:
+      - '@3.11.14'
+
+    py-numpy:
+      require:
+      - '@1.26.4'
+
+    # ── MPI ──────────────────────────────────────────────────────────────────
+    # Must match the MPI ISSM is built against (single MPI stack requirement —
+    # dual-MPI breaks parallel ISSM; see GPU_CHANGES.md item #1).
+    # openmpi@4.1.3 is already listed as external in the common Gadi packages.yaml.
+    openmpi:
+      require:
+      - '@4.1.3'
+
+    # ── Mesh / linear algebra deps ───────────────────────────────────────────
+    access-triangle:
+      require:
+      - '@1.6.1'
+
+    metis:
+      require:
+      - '@5.1.0'
+
+    access-mumps:
+      require:
+      - '@5.8.2'
+
+    parmetis:
+      require:
+      - '@4.0.3'
+
+    netlib-scalapack:
+      require:
+      - '@2.2.0'
+
+    # ── Autotools (build-time) ────────────────────────────────────────────────
+    autoconf:
+      require:
+      - '@2.72'
+
+    automake:
+      require:
+      - '@1.16.5'
+
+    libtool:
+      require:
+      - '@2.4.7'
+
+    m4:
+      require:
+      - '@1.4.19'
+
+    # Workaround: https://github.com/spack/spack-packages/pull/3644
+    re2c:
+      require:
+      - '@3.1'
+
+    # ── Compilers ─────────────────────────────────────────────────────────────
+    # Intel OneAPI for C/C++/Fortran (same as the CPU environment).
+    # nvcc from the external CUDA module handles GPU code.
+    c:
+      require:
+      - 'intel-oneapi-compilers@2025.2.0'
+    cxx:
+      require:
+      - 'intel-oneapi-compilers@2025.2.0'
+    fortran:
+      require:
+      - 'intel-oneapi-compilers@2025.2.0'
+
+    all:
+      prefer:
+      - 'target=x86_64'
+
+  modules:
+    default:
+      tcl:
+        projections:
+          access-issm: "{name}{^issm.variants.ad}/{version}"
+
+  view: true
+  concretizer:
+    unify: true
