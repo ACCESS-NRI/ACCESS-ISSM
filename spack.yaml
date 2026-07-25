@@ -19,9 +19,9 @@ spack:
 
     cuda:
       externals:
-      - spec: cuda@12.3.2
-        prefix: /apps/cuda/12.3.2
-        modules: [cuda/12.3.2]
+      - spec: cuda@12.5.1
+        prefix: /apps/cuda/12.5.1
+        modules: [cuda/12.5.1]
       buildable: false
 
     petsc:
@@ -33,7 +33,7 @@ spack:
 
     hypre:
       require:
-      - '@2.31.0'
+      - '@2.33.0'
       - +cuda
       - cuda_arch=80
 
@@ -94,31 +94,6 @@ spack:
     re2c:
       require:
       - '@3.1'
-
-    # gcc@12.2.0 is not in the Gadi v1.1 site config (only 13/14/15 are);
-    # declare it as an explicit external so Spack doesn't try to build it.
-    # GCC 12 is the newest version officially supported by CUDA 12.3.2 nvcc.
-    gcc:
-      externals:
-      - spec: gcc@12.2.0 languages:='c,c++,fortran'
-        prefix: /apps/gcc/12.2.0/wrappers
-        modules: [gcc/12.2.0]
-        extra_attributes:
-          compilers:
-            c: /apps/gcc/12.2.0/wrappers/gcc
-            cxx: /apps/gcc/12.2.0/wrappers/g++
-            fortran: /apps/gcc/12.2.0/wrappers/gfortran
-      buildable: false
-
-    c:
-      require:
-      - 'gcc@12.2.0'
-    cxx:
-      require:
-      - 'gcc@12.2.0'
-    fortran:
-      require:
-      - 'gcc@12.2.0'
 
     all:
       prefer:
