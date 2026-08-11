@@ -2,6 +2,11 @@ spack:
   definitions:
   - _name: [access-issm]
   - _version: [2026.05.0]
+  # _spack-version and _custom-scopes inform the branch of spack to use, and custom scopes if applicable, respectively
+  - _spack-version: ["1.1"]
+  # Release database provenance information - packages for inclusion into the database, and packages just for injection into the modules
+  - _provenance: ["issm"]
+  - _injection: ["openmpi", "access-triangle"]
   specs:
   - access-issm
   packages:
@@ -95,3 +100,8 @@ spack:
   # Make the solver unify dependencies
   concretizer:
     unify: true
+  repos:
+    access_spack_packages:
+      git: https://github.com/ACCESS-NRI/access-spack-packages.git
+      tag: 2026.05.002
+      destination: $env/package-repos/access-spack-packages
