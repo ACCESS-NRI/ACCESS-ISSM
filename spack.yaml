@@ -3,10 +3,10 @@ spack:
   - _name: [access-issm]
   - _version: [2026.05.0]
   # _spack-version and _custom-scopes inform the branch of spack to use, and custom scopes if applicable, respectively
-  - _spack-version: ["1.1"]
+  - _spack-version: ['1.1']
   # Release database provenance information - packages for inclusion into the database, and packages just for injection into the modules
-  - _provenance: ["issm"]
-  - _injection: ["openmpi", "access-triangle"]
+  - _provenance: [issm]
+  - _injection: [openmpi, access-triangle]
   specs:
   - access-issm
   packages:
@@ -78,23 +78,23 @@ spack:
     # Compilers
     c:
       require:
-      - 'intel-oneapi-compilers@2025.2.0'
+      - intel-oneapi-compilers@2025.2.0
     cxx:
       require:
-      - 'intel-oneapi-compilers@2025.2.0'
+      - intel-oneapi-compilers@2025.2.0
     fortran:
       require:
-      - 'intel-oneapi-compilers@2025.2.0'
+      - intel-oneapi-compilers@2025.2.0
 
     # “all” can remain empty if you aren’t forcing any particular compiler / MPI
     all:
       prefer:
-      - 'target=x86_64'
+      - target=x86_64
   modules:
     default:
       tcl:
         projections:
-          access-issm: "{name}{^issm.variants.ad}/{version}"
+          access-issm: '{name}{^issm.variants.ad}/{version}'
   # Create a unified view of all installed packages
   view: true
   # Make the solver unify dependencies
